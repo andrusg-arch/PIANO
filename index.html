@@ -206,70 +206,89 @@ function positionBlackKeys(){
 setTimeout(positionBlackKeys, 80);
 window.addEventListener('resize', ()=> setTimeout(positionBlackKeys, 80));
 
-// ---------- Audio voice handling (same as before) ----------
+// ---------- Audio con samples ----------
 const activeVoices = new Map();
+const sampleMap = {};
+const baseNotes = ["C2","C3","C4","C5","C6"];
 
-function createVoiceNodes(preset, freq){
-  const oscA = audioCtx.createOscillator();
-  const oscB = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  const filter = audioCtx.createBiquadFilter();
-  filter.type = 'lowpass';
-  if(preset === 'piano'){
-    oscA.type='triangle'; oscB.type='sine'; oscA.detune.value=-5; oscB.detune.value=3; filter.frequency.value = Math.max(1200, freq*6);
-  } else if(preset === 'electric'){
-    oscA.type='sawtooth'; oscB.type='square'; oscA.detune.value=-8; oscB.detune.value=7; filter.frequency.value = Math.max(1800, freq*4);
-  } else if(preset === 'pad'){
-    oscA.type='sawtooth'; oscB.type='sine'; oscA.detune.value=-12; oscB.detune.value=12; filter.frequency.value = Math.max(900, freq*3);
-  } else {
-    oscA.type='sine'; oscB.type='sine'; filter.frequency.value = Math.max(1200, freq*4);
+// Cargar samples en memoria
+async function loadSamples() {
+  for (let note of baseNotes) {
+    try {
+      const resp = await fetch(`samples/${note}.mp3`);
+      const arr = await resp.arrayBuffer();
+      sampleMap[note] = await audioCtx.decodeAudioData(arr);
+    } catch (err) {
+      console.error("❌ Error cargando sample", note, err);
+    }
   }
-  oscA.frequency.value = freq; oscB.frequency.value = freq;
-  const merger = audioCtx.createGain();
-  oscA.connect(filter); oscB.connect(filter); filter.connect(gain); gain.connect(merger); merger.connect(masterGain);
-  oscA.start(); oscB.start();
-  return {oscA,oscB,gain,filter,stopAt(after){ const now=audioCtx.currentTime; gain.gain.cancelScheduledValues(now); gain.gain.setValueAtTime(gain.gain.value,now); gain.gain.linearRampToValueAtTime(0.0001, now+after); try{ oscA.stop(now+after+0.02); oscB.stop(now+after+0.02);}catch(e){} } };
+  console.log("✅ Samples cargados:", Object.keys(sampleMap));
+}
+loadSamples();
+
+// Escoger sample más cercano para cada nota
+function getClosestSample(noteName) {
+  // Extraer octava (ej: "C#4" -> 4)
+  const oct = parseInt(noteName.slice(-1));
+  let nearest = baseNotes[0];
+  let minDist = 99;
+  for (let base of baseNotes) {
+    const baseOct = parseInt(base.slice(-1));
+    const d = Math.abs(oct - baseOct);
+    if (d < minDist) {
+      minDist = d;
+      nearest = base;
+    }
+  }
+  return nearest;
 }
 
+// Tocar una nota
 function noteOn(idx, velocity=1){
   if(activeVoices.has(idx)) return;
-  const n = notes[idx]; if(!n) return;
-  const preset = voiceSelect.value;
-  const nodes = createVoiceNodes(preset, n.freq);
-  const now = audioCtx.currentTime;
-  const attack = parseFloat(attackEl.value);
-  nodes.gain.gain.setValueAtTime(0.0001, now);
-  nodes.gain.gain.linearRampToValueAtTime(velocity, now + attack);
-  activeVoices.set(idx, {nodes, released:false, release: parseFloat(releaseEl.value)});
+  const n = notes[idx];
+  if(!n) return;
+
+  const sampleKey = getClosestSample(n.name);
+  const buffer = sampleMap[sampleKey];
+  if(!buffer) {
+    console.warn("⚠️ Samples aún no cargados");
+    return;
+  }
+
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  // Ajustar pitch para llegar a la frecuencia de la nota
+  const ratio = n.freq / (440 * Math.pow(2, (57 - 69)/12)); // referencia: A3=220Hz
+  src.playbackRate.value = ratio;
+
+  const gain = audioCtx.createGain();
+  gain.gain.value = velocity;
+
+  src.connect(gain).connect(masterGain);
+  src.start();
+
+  activeVoices.set(idx, {src, gain, release: parseFloat(releaseEl.value)});
   markKey(idx, true);
+  console.log("🎵 noteOn ->", n.name);
 }
 
+// Soltar una nota
 function noteOff(idx){
   const v = activeVoices.get(idx);
   if(!v) return;
-  if(sustainOn && !v.released){ v.released = true; return; }
-  v.nodes.stopAt(v.release);
-  setTimeout(()=> { activeVoices.delete(idx); }, (v.release + 0.06)*1000);
+  if(sustainOn && !v.released){
+    v.released = true;
+    return;
+  }
+  const now = audioCtx.currentTime;
+  v.gain.gain.linearRampToValueAtTime(0.0001, now + v.release);
+  try {
+    v.src.stop(now + v.release + 0.05);
+  } catch(e){}
+  setTimeout(()=> activeVoices.delete(idx), (v.release+0.1)*1000);
   markKey(idx, false);
-}
-
-function releaseAllHeld(){
-  activeVoices.forEach((v, idx)=>{
-    if(v.released){
-      v.nodes.stopAt(v.release);
-      setTimeout(()=> activeVoices.delete(idx), (v.release + 0.06)*1000);
-      markKey(idx, false);
-    }
-  });
-}
-
-function markKey(idx, on){
-  const white = keyboardEl.querySelector(`.white[data-index="${idx}"]`);
-  const black = keyboardEl.querySelector(`.black[data-index="${idx}"]`);
-  const el = white || black;
-  if(!el) return;
-  if(on) el.classList.add('pressed'); else el.classList.remove('pressed');
-}
+  }
 
 // pointer events
 let sustainOn = false;
