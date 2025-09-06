@@ -38,11 +38,19 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
 .white-keys{display:flex;gap:0;align-items:flex-end;height:320px;position:relative}
 .white{width:64px;height:100%;background:var(--white);border-left:1px solid var(--white-edge);border-right:1px solid var(--white-edge);border-bottom:12px solid #ddd;border-radius:6px 6px 0 0;position:relative;z-index:1;display:flex;align-items:flex-end;justify-content:center;cursor:pointer}
 .white .lbl{font-size:11px;color:#222;padding:6px}
-.white.pressed{background:linear-gradient(180deg,#fff8d6,#fff3c9);transform:translateY(4px)}
+.white.pressed { 
+    background: #e0e0d1; /* más oscuro */
+    transform: translateY(4px); 
+    transition: background 0.05s; /* cambio rápido */
+}
 .black-container{position:absolute;top:8px;left:8px;right:8px;bottom:0;pointer-events:none} /* container for black keys - absolute over whites */
 .black{position:absolute;width:19px;height:58%;background:var(--black);border-radius:0 0 6px 6px;z-index:3;display:flex;align-items:flex-end;justify-content:center;color:#fff;cursor:pointer;pointer-events:auto;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
 .black .lbl{font-size:11px;padding:6px}
-.black.pressed{background:#222;transform:translateY(4px)}
+.black.pressed { 
+    background: #333; /* más oscuro */
+    transform: translateY(4px);
+    transition: background 0.05s;
+}
 .legend{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin-top:8px}
 .footer{margin-top:8px;color:var(--muted);font-size:13px;text-align:center}
 .social a{color:var(--accent);text-decoration:none;margin:0 8px}
@@ -144,6 +152,21 @@ for(let o = startOct; o < startOct + octCount; o++){
   }
 }
 
+function markKey(idx, down){
+    const n = notes[idx];
+    if(!n) return;
+    let el;
+    if(n.isSharp){
+        el = blackContainer.children[idx];
+    } else {
+        el = Array.from(whiteContainer.children).find(w => parseInt(w.dataset.index) === idx);
+    }
+    if(el){
+        if(down) el.classList.add('pressed');
+        else el.classList.remove('pressed');
+    }
+  }
+  
 // create whites
 whiteContainer.innerHTML = '';
 const whiteEls = [];
@@ -237,15 +260,35 @@ function getSampleForNote(noteName) {
 
 // Tocar una nota
 function noteOn(idx, velocity=1){
+  markKey(idx,true); // primero marcar visualmente
   if(activeVoices.has(idx)) return;
   const n = notes[idx];
   if(!n) return;
 
   const sampleKey = getSampleForNote(n.name);
   const buffer = sampleMap[sampleKey];
-  if(!buffer) {
-    console.warn("⚠️ Samples aún no cargados");
-    return;
+  if(buffer){
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+      const sampleFreq = notes.find(x=>x.name===sampleKey).freq;
+      src.playbackRate.value = n.freq / sampleFreq;
+      const gain = audioCtx.createGain();
+      gain.gain.value = velocity;
+      src.connect(gain).connect(masterGain);
+      src.start();
+      activeVoices.set(idx,{src,gain,release:parseFloat(releaseEl.value)});
+  } else {
+      // fallback con oscilador temporal para sonido instantáneo
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = n.freq;
+      const gain = audioCtx.createGain();
+      gain.gain.value = velocity*0.3;
+      osc.connect(gain).connect(masterGain);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+      activeVoices.set(idx,{src:osc,gain,release:0.2});
+  }
   }
 
   // frecuencia de la nota base (ejemplo: C3)
