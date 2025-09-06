@@ -226,21 +226,13 @@ async function loadSamples() {
 }
 loadSamples();
 
-// Escoger sample más cercano para cada nota
-function getClosestSample(noteName) {
-  // Extraer octava (ej: "C#4" -> 4)
+// Escoger el sample correcto para cada nota (según su octava)
+function getSampleForNote(noteName) {
   const oct = parseInt(noteName.slice(-1));
-  let nearest = baseNotes[0];
-  let minDist = 99;
-  for (let base of baseNotes) {
-    const baseOct = parseInt(base.slice(-1));
-    const d = Math.abs(oct - baseOct);
-    if (d < minDist) {
-      minDist = d;
-      nearest = base;
-    }
-  }
-  return nearest;
+  const base = "C" + oct;
+  if (sampleMap[base]) return base;
+  // fallback si no hay sample
+  return "C4";
 }
 
 // Tocar una nota
@@ -249,18 +241,21 @@ function noteOn(idx, velocity=1){
   const n = notes[idx];
   if(!n) return;
 
-  const sampleKey = getClosestSample(n.name);
+  const sampleKey = getSampleForNote(n.name);
   const buffer = sampleMap[sampleKey];
   if(!buffer) {
     console.warn("⚠️ Samples aún no cargados");
     return;
   }
 
+  // frecuencia de la nota base (ejemplo: C3)
+  const sampleFreq = notes.find(x => x.name === sampleKey).freq;
+
   const src = audioCtx.createBufferSource();
   src.buffer = buffer;
-  // Ajustar pitch para llegar a la frecuencia de la nota
-  const ratio = n.freq / (440 * Math.pow(2, (57 - 69)/12)); // referencia: A3=220Hz
-  src.playbackRate.value = ratio;
+
+  // ratio = frecuencia deseada / frecuencia del sample base
+  src.playbackRate.value = n.freq / sampleFreq;
 
   const gain = audioCtx.createGain();
   gain.gain.value = velocity;
@@ -270,8 +265,8 @@ function noteOn(idx, velocity=1){
 
   activeVoices.set(idx, {src, gain, release: parseFloat(releaseEl.value)});
   markKey(idx, true);
-  console.log("🎵 noteOn ->", n.name);
-}
+  console.log("🎵 noteOn ->", n.name, "usando sample", sampleKey);
+  }
 
 // Soltar una nota
 function noteOff(idx){
