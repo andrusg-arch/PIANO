@@ -153,17 +153,12 @@ for(let o = startOct; o < startOct + octCount; o++){
 }
 
 function markKey(idx, down){
-    const n = notes[idx];
-    if(!n) return;
-    let el;
-    if(n.isSharp){
-        el = blackContainer.children[idx];
-    } else {
-        el = Array.from(whiteContainer.children).find(w => parseInt(w.dataset.index) === idx);
-    }
+function markKey(idx, down){
+    // Busca cualquier tecla (blanca o negra) que tenga el data-index correspondiente
+    const el = document.querySelector(`[data-index="${idx}"]`);
     if(el){
-        if(down) el.classList.add('pressed');
-        else el.classList.remove('pressed');
+        if(down) el.classList.add('pressed');    // resalta
+        else el.classList.remove('pressed');     // quita el resalte
     }
   }
   
