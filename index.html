@@ -315,113 +315,121 @@ function getSampleForNote(noteName) {
 const staffCanvas = document.getElementById('staffCanvas');
 const staffCtx = staffCanvas ? staffCanvas.getContext('2d') : null;
 
-// dibuja las dos pentagramas (clave de sol arriba, clave de fa abajo)
+// nombres de notas en orden (do–si)
+const noteNames = ["C","D","E","F","G","A","B"];
+
+// Función auxiliar: convierte número MIDI a nombre de nota
+function midiToNoteName(midi) {
+  const note = midi % 12;
+  const octave = Math.floor(midi / 12) - 1;
+  const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  return names[note] + octave;
+}
+
+// Dibujar las líneas del pentagrama
 function drawStaff() {
   if(!staffCtx) return;
   const ctx = staffCtx;
   ctx.clearRect(0,0,staffCanvas.width, staffCanvas.height);
   ctx.lineWidth = 1;
-  ctx.strokeStyle = '#0b0f12';
-  ctx.fillStyle = '#0b0f12';
+  ctx.strokeStyle = '#000';
+  ctx.fillStyle = '#000';
   ctx.font = "28px serif";
 
-  // Margenes
   const left = 40;
-  const right = staffCanvas.width - 40;
-
-  // Espaciado entre líneas
+  const right = staffCanvas.width - 20;
   const lineGap = 12;
 
   // Pentagrama superior (clave de sol)
-  const topY = 30;
+  const topY = 40;
   for(let i=0;i<5;i++){
-    const y = topY + i * lineGap;
+    const y = topY + i*lineGap;
     ctx.beginPath();
-    ctx.moveTo(left, y);
-    ctx.lineTo(right, y);
+    ctx.moveTo(left,y);
+    ctx.lineTo(right,y);
     ctx.stroke();
   }
 
   // Pentagrama inferior (clave de fa)
-  const bottomY = 100;
+  const bottomY = 140;
   for(let i=0;i<5;i++){
-    const y = bottomY + i * lineGap;
+    const y = bottomY + i*lineGap;
     ctx.beginPath();
-    ctx.moveTo(left, y);
-    ctx.lineTo(right, y);
+    ctx.moveTo(left,y);
+    ctx.lineTo(right,y);
     ctx.stroke();
   }
 
-  // Dibujar claves (simples, usando caracteres musicales)
-  ctx.fillText("𝄞", 10, topY + 20);   // clave de sol
-  ctx.fillText("𝄢", 10, bottomY + 20); // clave de fa
+  // Claves
+  ctx.fillText("𝄞", 10, topY+25);
+  ctx.fillText("𝄢", 10, bottomY+25);
 }
 
-// convierte un número MIDI a coordenada Y en el canvas (aproximada)
+// Calcula la posición Y de una nota en el pentagrama
 function midiToStaffY(midi) {
-  // Parámetros ajustables si quieres mover visualmente las notas
-  const lineGap = 12;
-  const topY = 30;     // línea superior del pentagrama de sol
-  const bottomY = 100; // línea superior del pentagrama de fa
+  // referencia: C4 = DO central = 60
+  // cada paso diatónico (C→D→E...) = 6 px
+  const step = 6;
 
-  // Decidir en qué pentagrama dibujar: si midi >= 60 (C4) dibujamos en pentagrama de sol, sino en fa.
-  if (midi >= 60) {
-    // referencia: midi 72 (C5) estará centrado cerca de la 2ª línea (ajusta si quieres)
-    const semitonePx = 6; // cuantos px por semitono (ajusta)
-    // colocamos midi 72 en y = topY + 2 * lineGap (aprox)
-    const refMidi = 72; // C5
-    const refY = topY + 2 * lineGap;
-    return refY - (midi - refMidi) * semitonePx;
+  const name = midiToNoteName(midi);
+  const letter = name[0]; // C D E F G A B
+  const octave = parseInt(name.slice(-1));
+
+  // Calcular distancia en "steps diatónicos" desde un punto de referencia
+  // Ejemplo: en clave de sol, la segunda línea es G4 (midi 67)
+  let referenceMidi, referenceY;
+  if(midi >= 60) {
+    referenceMidi = 67; // G4
+    referenceY = 40 + 3*12; // segunda línea de arriba
   } else {
-    // para bajos: referencia midi 48 (C3)
-    const semitonePx = 6;
-    const refMidi = 48; // C3
-    const refY = bottomY + 2 * lineGap;
-    return refY - (midi - refMidi) * semitonePx;
+    referenceMidi = 53; // F3
+    referenceY = 140 + 3*12; // cuarta línea
   }
+
+  // contar distancia diatónica
+  const refName = midiToNoteName(referenceMidi)[0];
+  const refOct = parseInt(midiToNoteName(referenceMidi).slice(-1));
+
+  const letters = ["C","D","E","F","G","A","B"];
+  function diatonicIndex(noteName, octave) {
+    return octave*7 + letters.indexOf(noteName);
+  }
+
+  const currentIndex = diatonicIndex(letter, octave);
+  const refIndex = diatonicIndex(refName, refOct);
+
+  const delta = currentIndex - refIndex;
+  return referenceY - delta*step;
 }
 
-// dibuja una cabeza de nota (óvalo) y líneas auxiliares si hace falta
+// Dibuja una nota en el pentagrama
 function drawNoteOnStaff(midi) {
   if(!staffCtx) return;
   drawStaff();
   const ctx = staffCtx;
-  const x = 140; // posición horizontal fija para la nota (cambia si quieres varias notas en fila)
+
+  const x = 140;
   const y = midiToStaffY(midi);
 
-  // cabeza de nota (óvalo)
-  ctx.fillStyle = '#012'; // color oscuro
+  // cabeza de la nota
+  ctx.fillStyle = '#000';
   ctx.beginPath();
-  ctx.ellipse(x, y, 9, 6, Math.PI * 0.15, 0, Math.PI * 2);
+  ctx.ellipse(x, y, 9, 6, Math.PI*0.1, 0, Math.PI*2);
   ctx.fill();
 
-  // si la nota está muy arriba o abajo, dibujar líneas de repuesto (ledger lines)
-  const topStaffLine = 30;
-  const bottomStaffLine = 100 + 4 * 12; // la última línea del pentagrama inferior
-
-  // si y < topStaffLine - 8 -> dibuja ledger lines ascendentes
-  let ledgerY = null;
-  if (y < topStaffLine - 10) {
-    ledgerY = y;
-    // dibujar una pequeña línea horizontal sobre la nota
-    ctx.strokeStyle = '#0b0f12';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(x - 16, ledgerY);
-    ctx.lineTo(x + 16, ledgerY);
-    ctx.stroke();
-  } else if (y > bottomStaffLine + 10) {
-    ledgerY = y;
-    ctx.strokeStyle = '#0b0f12';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(x - 16, ledgerY);
-    ctx.lineTo(x + 16, ledgerY);
-    ctx.stroke();
+  // ¿es sostenido o bemol?
+  const noteName = midiToNoteName(midi);
+  if(noteName.includes("#")) {
+    ctx.font = "18px serif";
+    ctx.fillText("♯", x-18, y+5);
+  }
+  if(noteName.includes("b")) {
+    ctx.font = "18px serif";
+    ctx.fillText("♭", x-18, y+5);
   }
 }
 
-// dibujar inicialmente el pentagrama vacío
+// Dibuja el pentagrama vacío al inicio
 drawStaff();
 // Tocar una nota
 function noteOn(idx, velocity=1){
