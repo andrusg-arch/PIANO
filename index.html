@@ -295,118 +295,56 @@ function getSampleForNote(noteName) {
 }
 
 // Tocar una nota
-// Tocar una nota (versión sostenida y con envelope; mantiene la voz hasta noteOff)
-function noteOn(idx, velocity = 1){
-  // si ya hay una voz para esa tecla (está presionada) NO re-triggerear
-  if (activeVoices.has(idx)) return;
-
+function noteOn(idx, velocity=1){
   const n = notes[idx];
   if(!n) return;
 
   const sampleKey = getSampleForNote(n.name);
   const buffer = sampleMap[sampleKey];
-  const now = audioCtx.currentTime;
-
-  if (buffer) {
-    // sample: lo seteamos en loop para que suene hasta noteOff
-    const sampleFreq = notes.find(x => x.name === sampleKey).freq;
-    const src = audioCtx.createBufferSource();
-    src.buffer = buffer;
-    src.loop = true; // importante: mantiene sonando hasta noteOff
-    src.playbackRate.setValueAtTime(n.freq / sampleFreq, now);
-
-    const gain = audioCtx.createGain();
-    // start desde casi 0 y hacer ataque usando attackEl
-    gain.gain.setValueAtTime(0.0001, now);
-    const attackT = parseFloat(attackEl.value) || 0.008;
-    gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, velocity), now + attackT);
-
-    src.connect(gain).connect(masterGain);
-    src.start(now);
-
-    // guardamos la voz activa, incluida la propiedad released para sustain
-    activeVoices.set(idx, { src, gain, release: parseFloat(releaseEl.value) || 0.18, released: false });
-
-    markKey(idx, true);
-  } else {
-    // fallback oscillator (si no hay samples)
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0.0001, now);
-    const attackT = parseFloat(attackEl.value) || 0.008;
-    gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, velocity), now + attackT);
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(n.freq, now);
-    osc.connect(gain).connect(masterGain);
-    osc.start(now);
-
-    activeVoices.set(idx, { src: osc, gain, release: parseFloat(releaseEl.value) || 0.18, released: false });
-
-    markKey(idx, true);
+  if(!buffer) {
+    console.warn("⚠️ Samples aún no cargados");
+    return;
   }
 
-  console.log("🎵 noteOn ->", n.name);
+  const sampleFreq = notes.find(x => x.name === sampleKey).freq;
+
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  src.playbackRate.value = n.freq / sampleFreq;
+
+  const gain = audioCtx.createGain();
+  const now = audioCtx.currentTime;
+  gain.gain.setValueAtTime(velocity, now);
+
+  src.connect(gain).connect(masterGain);
+  src.start(now);
+
+  // Release suave aunque dispares rápido varias veces
+  const rel = parseFloat(releaseEl.value);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + rel + 0.3);
+  src.stop(now + rel + 0.35);
+
+  markKey(idx, true);
+  setTimeout(()=> markKey(idx,false), 120);
   }
 
 // Soltar una nota
-// Soltar una nota (manejo de sustain + release en envelope)
 function noteOff(idx){
   const v = activeVoices.get(idx);
   if(!v) return;
-
-  // Si el pedal (sustain) está activo y esta voz aún no fue marcada como "released",
-  // la marcamos y no la apagamos ahora — se apagará cuando el sustain se quite.
   if(sustainOn && !v.released){
     v.released = true;
     return;
   }
-
   const now = audioCtx.currentTime;
-  // cancelar valores previos y tomar el valor actual para empezar el release
+  v.gain.gain.linearRampToValueAtTime(0.0001, now + v.release);
   try {
-    v.gain.gain.cancelScheduledValues(now);
-    // fijar al valor actual para evitar saltos y hacer release exponencial
-    v.gain.gain.setValueAtTime(v.gain.gain.value, now);
-    const rel = v.release || parseFloat(releaseEl.value) || 0.18;
-    v.gain.gain.exponentialRampToValueAtTime(0.0001, now + rel);
-
-    // programar stop del source después del release
-    try { v.src.stop(now + rel + 0.02); } catch(e) { /* algunos nodos pueden fallar al stop si ya pararon */ }
-
-    // limpiar del Map luego de que termine el release
-    setTimeout(() => { activeVoices.delete(idx); }, (rel + 0.05) * 1000);
-  } catch(e){
-    // en fallo, eliminar la voz por seguridad
-    try { v.src.stop(); } catch(_) {}
-    activeVoices.delete(idx);
-  }
-
+    v.src.stop(now + v.release + 0.05);
+  } catch(e){}
+  setTimeout(()=> activeVoices.delete(idx), (v.release+0.1)*1000);
   markKey(idx, false);
   }
 
-  // Apagar todas las voces que se marcaron como "released" (cuando se suelta el sustain/pedal)
-function releaseAllHeld(){
-  activeVoices.forEach((v, idx) => {
-    if(!v) return;
-    // si fue marcada para release (v.released === true), aplicamos el release ahora
-    if(v.released){
-      const now = audioCtx.currentTime;
-      try {
-        v.gain.gain.cancelScheduledValues(now);
-        v.gain.gain.setValueAtTime(v.gain.gain.value, now);
-        const rel = v.release || parseFloat(releaseEl.value) || 0.18;
-        v.gain.gain.exponentialRampToValueAtTime(0.0001, now + rel);
-        try { v.src.stop(now + rel + 0.02); } catch(e){}
-        setTimeout(()=> { activeVoices.delete(idx); markKey(idx, false); }, (rel + 0.05) * 1000);
-      } catch(e){
-        try { v.src.stop(); } catch(_) {}
-        activeVoices.delete(idx);
-      }
-    }
-  });
-  }
-  
 /* -------------------- EAR TRAINER -------------------- */
 /* Asegura markKey si no existe (fallback seguro) */
 if (typeof markKey === 'undefined') {
@@ -621,4 +559,4 @@ resetBtn.addEventListener('click', ()=> {
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
 </script>
 </body>
-        </html>
+                                                                   </html>
