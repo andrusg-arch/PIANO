@@ -296,7 +296,6 @@ function getSampleForNote(noteName) {
 
 // Tocar una nota
 function noteOn(idx, velocity=1){
-  if(activeVoices.has(idx)) return;
   const n = notes[idx];
   if(!n) return;
 
@@ -307,24 +306,26 @@ function noteOn(idx, velocity=1){
     return;
   }
 
-  // frecuencia de la nota base (ejemplo: C3)
   const sampleFreq = notes.find(x => x.name === sampleKey).freq;
 
   const src = audioCtx.createBufferSource();
   src.buffer = buffer;
-
-  // ratio = frecuencia deseada / frecuencia del sample base
   src.playbackRate.value = n.freq / sampleFreq;
 
   const gain = audioCtx.createGain();
-  gain.gain.value = velocity;
+  const now = audioCtx.currentTime;
+  gain.gain.setValueAtTime(velocity, now);
 
   src.connect(gain).connect(masterGain);
-  src.start();
+  src.start(now);
 
-  activeVoices.set(idx, {src, gain, release: parseFloat(releaseEl.value)});
+  // Release suave aunque dispares rápido varias veces
+  const rel = parseFloat(releaseEl.value);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + rel + 0.3);
+  src.stop(now + rel + 0.35);
+
   markKey(idx, true);
-  console.log("🎵 noteOn ->", n.name, "usando sample", sampleKey);
+  setTimeout(()=> markKey(idx,false), 120);
   }
 
 // Soltar una nota
