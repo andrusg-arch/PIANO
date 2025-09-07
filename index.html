@@ -319,31 +319,28 @@ function noteOn(idx, velocity=1){
   src.connect(gain).connect(masterGain);
   src.start(now);
 
-  // Release suave aunque dispares rápido varias veces
-  const rel = parseFloat(releaseEl.value);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + rel + 0.3);
-  src.stop(now + rel + 0.35);
+  // guardar en activeVoices
+  activeVoices.set(idx, { src, gain, release: parseFloat(releaseEl.value), released:false });
 
   markKey(idx, true);
-  setTimeout(()=> markKey(idx,false), 120);
-  }
+}
 
-// Soltar una nota
 function noteOff(idx){
   const v = activeVoices.get(idx);
   if(!v) return;
+
   if(sustainOn && !v.released){
-    v.released = true;
+    v.released = true; // se queda sonando hasta que quites sustain
     return;
   }
+
   const now = audioCtx.currentTime;
   v.gain.gain.linearRampToValueAtTime(0.0001, now + v.release);
-  try {
-    v.src.stop(now + v.release + 0.05);
-  } catch(e){}
+  try { v.src.stop(now + v.release + 0.05); } catch(e){}
   setTimeout(()=> activeVoices.delete(idx), (v.release+0.1)*1000);
-  markKey(idx, false);
-  }
+
+  markKey(idx,false);
+}
 
 /* -------------------- EAR TRAINER -------------------- */
 /* Asegura markKey si no existe (fallback seguro) */
