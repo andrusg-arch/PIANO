@@ -381,43 +381,12 @@ function clearEarButtons(){
   earButtons.forEach(b => { b.classList.remove('correct','wrong'); b.disabled = false; });
 }
 
-/* reproducir nota como preview con sustain natural */
-function playPreview(idx){
+/* reproducir nota como preview sin tocar activeVoices (no interactúa con sustain) */
+function playPreview(idx, duration = 1.0){
   const n = notes[idx];
   if(!n) return;
   const sampleKey = getSampleForNote(n.name);
   const now = audioCtx.currentTime;
-
-  if (sampleKey && sampleMap[sampleKey]) {
-    const buffer = sampleMap[sampleKey];
-    const sampleFreq = notes.find(x => x.name === sampleKey).freq;
-
-    const src = audioCtx.createBufferSource();
-    src.buffer = buffer;
-    src.playbackRate.value = n.freq / sampleFreq;
-
-    const g = audioCtx.createGain();
-    g.gain.setValueAtTime(1.0, now);
-
-    // aquí hacemos el sustain (se va apagando despacio)
-    g.gain.exponentialRampToValueAtTime(0.001, now + 3.5);
-
-    src.connect(g).connect(masterGain);
-    src.start(now);
-    src.stop(now + 3.6); // corta el sample al final del fade
-  } else {
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(n.freq, now);
-    g.gain.setValueAtTime(0.6, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 3.5);
-
-    osc.connect(g).connect(masterGain);
-    osc.start(now);
-    osc.stop(now + 3.6);
-  }
-  }
 
   // marcar visual breve
   markKey(idx, true);
@@ -589,4 +558,4 @@ resetBtn.addEventListener('click', ()=> {
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
 </script>
 </body>
-  </html>
+        </html>
