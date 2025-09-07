@@ -381,13 +381,46 @@ function clearEarButtons(){
   earButtons.forEach(b => { b.classList.remove('correct','wrong'); b.disabled = false; });
 }
 
-/* reproducir nota como preview sin tocar activeVoices (no interactúa con sustain) */
-function playPreview(idx, duration = 1.0){
+/* reproducir nota como preview sostenido (no toca activeVoices) */
+function playPreview(idx){
+  stopPreview(); // detener cualquier nota previa primero
   const n = notes[idx];
   if(!n) return;
   const sampleKey = getSampleForNote(n.name);
   const now = audioCtx.currentTime;
 
+  if (sampleKey && sampleMap[sampleKey]) {
+    const buffer = sampleMap[sampleKey];
+    const sampleFreq = notes.find(x => x.name === sampleKey).freq;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.loop = true; // bucle para que se mantenga
+    src.playbackRate.value = n.freq / sampleFreq;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(1.0, now);
+    src.connect(g).connect(masterGain);
+    src.start(now);
+    ear.currentSource = src; // guardar ref para parar luego
+  } else {
+    // fallback oscillator
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(n.freq, now);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.6, now);
+    osc.connect(g).connect(masterGain);
+    osc.start(now);
+    ear.currentSource = osc;
+  }
+  }
+/* detener nota previa del ear trainer */
+function stopPreview(){
+  if(ear.currentSource){
+    try { ear.currentSource.stop(); } catch(e){}
+    ear.currentSource.disconnect();
+    ear.currentSource = null;
+  }
+  }
   // marcar visual breve
   markKey(idx, true);
 
@@ -423,12 +456,11 @@ function playPreview(idx, duration = 1.0){
 
 /* elegir nota aleatoria y reproducir */
 function pickRandomTarget(){
-  clearEarButtons();
+  stopPreview();   // ✅ detener nota previa
   const idx = Math.floor(Math.random() * notes.length);
-  ear.targetIdx = idx;
-  ear.targetName = notes[idx].name.slice(0, -1); // quitar octava
-  playPreview(idx, 1.0);
-}
+  ear.target = idx;
+  playPreview(idx);
+  }
 
 /* reproducir objetivo actual (si existe) */
 function playTarget(){
@@ -437,10 +469,19 @@ function playTarget(){
 }
 
 /* manejar respuesta del usuario */
-function handleGuess(label, buttonEl){
-  if(ear.targetIdx === null) return;
-  // deshabilitar temporalmente botones para evitar spam
-  earButtons.forEach(b=> b.disabled = true);
+function handleGuess(guess){
+  const correctNote = notes[ear.target].name.replace("♯","#");
+  if(guess === correctNote){
+    ear.correct++;
+    updateScore();
+    highlightButton(guess, true);
+  } else {
+    ear.wrong++;
+    updateScore();
+    highlightButton(guess, false);
+  }
+  stopPreview(); // ✅ detener el sonido cuando ya respondió
+  }
 
   const correctLabel = ear.targetName; // ej "C#", "G"
   if(label === correctLabel){
