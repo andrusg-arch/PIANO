@@ -22,8 +22,6 @@
 :root{
   --bg:#071126; --panel:#0b2330; --muted:#9fb0bd; --accent:#00d4b4;
   --white:#fffdf6; --white-edge:#d4cec4; --black:#0b0f12;
-  --white-width: 64px;   /* ancho tecla blanca por defecto */
-  --black-width: 19px;   /* ancho tecla negra por defecto */
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#021018);color:#e6f4f2;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;}
@@ -38,25 +36,18 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
 .keyboard-wrap{background:linear-gradient(180deg,#041427,#021018);padding:12px;border-radius:12px}
 .keyboard{position:relative;width:100%;overflow-x:auto;border-radius:8px;padding:8px}
 .white-keys{display:flex;gap:0;align-items:flex-end;height:320px;position:relative}
-.white{width:var(--white-width);height:100%;background:var(--white);border-left:1px solid var(--white-edge);border-right:1px solid var(--white-edge);border-bottom:12px solid #ddd;border-radius:6px 6px 0 0;position:relative;z-index:1;display:flex;align-items:flex-end;justify-content:center;cursor:pointer}
+.white{width:64px;height:100%;background:var(--white);border-left:1px solid var(--white-edge);border-right:1px solid var(--white-edge);border-bottom:12px solid #ddd;border-radius:6px 6px 0 0;position:relative;z-index:1;display:flex;align-items:flex-end;justify-content:center;cursor:pointer}
 .white .lbl{font-size:11px;color:#222;padding:6px}
 .white.pressed{background:linear-gradient(180deg,#fff8d6,#fff3c9);transform:translateY(4px)}
 .black-container{position:absolute;top:8px;left:8px;right:8px;bottom:0;pointer-events:none} /* container for black keys - absolute over whites */
-.black{position:absolute;width:var(--black-width);height:58%;background:var(--black);border-radius:0 0 6px 6px;z-index:3;display:flex;align-items:flex-end;justify-content:center;color:#fff;cursor:pointer;pointer-events:auto;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
+.black{position:absolute;width:19px;height:58%;background:var(--black);border-radius:0 0 6px 6px;z-index:3;display:flex;align-items:flex-end;justify-content:center;color:#fff;cursor:pointer;pointer-events:auto;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
 .black .lbl{font-size:11px;padding:6px}
 .black.pressed{background:#222;transform:translateY(4px)}
 .legend{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin-top:8px}
 .footer{margin-top:8px;color:var(--muted);font-size:13px;text-align:center}
 .social a{color:var(--accent);text-decoration:none;margin:0 8px}
-@media (max-width:900px){
-  :root { --white-width: 48px; --black-width: 19px; }
-  .white-keys{ height:260px; }
-}
-@media (max-width:560px){
-  :root { --white-width: 40px; --black-width: 14px; }
-  .white-keys{ height:220px; }
-  .controls{ gap:8px; }
-    }
+@media (max-width:900px){ .white{width:48px} .black{width:19px} .white-keys{height:260px} }
+@media (max-width:560px){ .white{width:40px} .white-keys{height:220px} .controls{gap:8px} }
 /* --- Ear Trainer UI --- */
 .ear-trainer-wrap { margin-top:10px; border-radius:10px; padding:8px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); display:block; }
 #toggleEarBtn { background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;cursor:pointer;margin-bottom:8px; }
@@ -89,13 +80,6 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
       <div class="control-group"><label class="small">Volumen</label><input id="masterVol" type="range" min="0" max="1" step="0.01" value="0.88"></div>
       <div class="control-group"><label class="small">Attack</label><input id="attack" type="range" min="0.001" max="0.5" step="0.001" value="0.008"></div>
       <div class="control-group"><label class="small">Release</label><input id="release" type="range" min="0.02" max="2.0" step="0.01" value="0.18"></div>
-      <div class="control-group">
-  <label class="small">Zoom (ancho tecla)</label>
-  <input id="zoomRange" type="range" min="40" max="120" step="2" value="64" />
-  <div class="small" style="margin-top:6px;color:var(--muted);">
-    Arrastra para acercar/alejar
-  </div>
-      </div>
       <div class="control-group"><label class="small">Reverb</label><input id="reverb" type="range" min="0" max="0.8" step="0.01" value="0.12"></div>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center"><button id="sustainBtn">Sustain: off</button><button id="resetBtn" class="primary">Reset</button></div>
     </div>
@@ -183,27 +167,7 @@ const masterVol = document.getElementById('masterVol');
 const sustainBtn = document.getElementById('sustainBtn');
 const reverbEl = document.getElementById('reverb');
 const resetBtn = document.getElementById('resetBtn');
-// --- ZOOM (ancho de tecla) ---
-const zoomRange = document.getElementById('zoomRange');
 
-function applyZoomFromInput(valuePx) {
-  const whiteW = Math.max(28, Math.min(200, Number(valuePx))); // límites seguros
-  const blackW = Math.max(10, Math.round(whiteW * 0.30));
-  document.documentElement.style.setProperty('--white-width', whiteW + 'px');
-  document.documentElement.style.setProperty('--black-width', blackW + 'px');
-  setTimeout(positionBlackKeys, 30); // recalcula posiciones negras
-}
-
-if (zoomRange) {
-  applyZoomFromInput(zoomRange.value);
-  zoomRange.addEventListener('input', (e)=> {
-    applyZoomFromInput(e.target.value);
-  });
-  zoomRange.addEventListener('dblclick', ()=> {
-    zoomRange.value = 64;
-    applyZoomFromInput(64);
-  });
-  }
 masterVol.addEventListener('input', ()=> masterGain.gain.value = parseFloat(masterVol.value));
 reverbEl.addEventListener('input', ()=> reverbGain.gain.value = parseFloat(reverbEl.value));
 document.addEventListener('pointerdown', function resumeAudio(){ if(audioCtx.state === 'suspended') audioCtx.resume(); document.removeEventListener('pointerdown', resumeAudio); });
@@ -592,4 +556,4 @@ resetBtn.addEventListener('click', ()=> {
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
 </script>
 </body>
-                                                                   </html>
+                                   </html>
