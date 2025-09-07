@@ -367,33 +367,36 @@ function drawStaff() {
 
 // Calcula la posición Y de una nota en el pentagrama
 function midiToStaffY(midi) {
-  // referencia: C4 = DO central = 60
-  // cada paso diatónico (C→D→E...) = 6 px
-  const step = 6;
+  const step = 6; // cada paso diatónico
 
   const name = midiToNoteName(midi);
-  const letter = name[0]; // C D E F G A B
+  const letter = name[0];
   const octave = parseInt(name.slice(-1));
-
-  // Calcular distancia en "steps diatónicos" desde un punto de referencia
-  // Ejemplo: en clave de sol, la segunda línea es G4 (midi 67)
-  let referenceMidi, referenceY;
-  if(midi >= 60) {
-    referenceMidi = 67; // G4
-    referenceY = 40 + 3*12; // segunda línea de arriba
-  } else {
-    referenceMidi = 53; // F3
-    referenceY = 140 + 3*12; // cuarta línea
-  }
-
-  // contar distancia diatónica
-  const refName = midiToNoteName(referenceMidi)[0];
-  const refOct = parseInt(midiToNoteName(referenceMidi).slice(-1));
 
   const letters = ["C","D","E","F","G","A","B"];
   function diatonicIndex(noteName, octave) {
     return octave*7 + letters.indexOf(noteName);
   }
+
+  // Clave de sol (G4 en segunda línea)
+  const solRefMidi = 67;
+  const solRefY = 40 + 3*12;
+
+  // Clave de fa (F3 en cuarta línea)
+  const faRefMidi = 53;
+  const faRefY = 140 + 3*12;
+
+  let referenceMidi, referenceY;
+  if(midi >= 60) {
+    referenceMidi = solRefMidi;
+    referenceY = solRefY;
+  } else {
+    referenceMidi = faRefMidi;
+    referenceY = faRefY;
+  }
+
+  const refName = midiToNoteName(referenceMidi)[0];
+  const refOct = parseInt(midiToNoteName(referenceMidi).slice(-1));
 
   const currentIndex = diatonicIndex(letter, octave);
   const refIndex = diatonicIndex(refName, refOct);
@@ -417,17 +420,21 @@ function drawNoteOnStaff(midi) {
   ctx.ellipse(x, y, 9, 6, Math.PI*0.1, 0, Math.PI*2);
   ctx.fill();
 
-  // ¿es sostenido o bemol?
+  // alteraciones ♯ y ♭
   const noteName = midiToNoteName(midi);
-  if(noteName.includes("#")) {
-    ctx.font = "18px serif";
-    ctx.fillText("♯", x-18, y+5);
+  if(noteName.includes("#")) ctx.fillText("♯", x-18, y+5);
+  if(noteName.includes("b")) ctx.fillText("♭", x-18, y+5);
+
+  // línea adicional si queda fuera del pentagrama
+  const topLineY = 40;
+  const bottomLineY = 140 + 4*12;
+  if (y < topLineY - 6 || y > bottomLineY + 6) {
+    ctx.beginPath();
+    ctx.moveTo(x-12, y);
+    ctx.lineTo(x+12, y);
+    ctx.stroke();
   }
-  if(noteName.includes("b")) {
-    ctx.font = "18px serif";
-    ctx.fillText("♭", x-18, y+5);
   }
-}
 
 // Dibuja el pentagrama vacío al inicio
 drawStaff();
