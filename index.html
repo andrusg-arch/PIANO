@@ -65,6 +65,8 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
   transform-origin: left center;
   transition: transform 0.2s ease;
                }
+/* --- Staff (pentagrama) --- */
+#staffCanvas { box-shadow: 0 6px 18px rgba(0,0,0,0.25); background: transparent; }
 </style>
 </head>
 <body>
@@ -92,7 +94,9 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
       </div>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center"><button id="sustainBtn">Sustain: off</button><button id="resetBtn" class="primary">Reset</button></div>
     </div>
-<!-- EAR TRAINER (desplegable) -->
+<!-- Pentagrama (pequeño, no molesta) -->
+<canvas id="staffCanvas" width="520" height="180" style="display:block;margin:8px auto 12px;max-width:520px;width:100%;height:auto;border-radius:8px;"></canvas>
+    <!-- EAR TRAINER (desplegable) -->
 <div class="ear-trainer-wrap">
   <button id="toggleEarBtn" aria-expanded="false">Ear Trainer ▸</button>
   <div id="earTrainerPanel" aria-hidden="true">
@@ -307,7 +311,118 @@ function getSampleForNote(noteName) {
   // fallback si no hay sample
   return "C4";
 }
+// --------- PENTAGRAMA (staff) ---------
+const staffCanvas = document.getElementById('staffCanvas');
+const staffCtx = staffCanvas ? staffCanvas.getContext('2d') : null;
 
+// dibuja las dos pentagramas (clave de sol arriba, clave de fa abajo)
+function drawStaff() {
+  if(!staffCtx) return;
+  const ctx = staffCtx;
+  ctx.clearRect(0,0,staffCanvas.width, staffCanvas.height);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#0b0f12';
+  ctx.fillStyle = '#0b0f12';
+  ctx.font = "28px serif";
+
+  // Margenes
+  const left = 40;
+  const right = staffCanvas.width - 40;
+
+  // Espaciado entre líneas
+  const lineGap = 12;
+
+  // Pentagrama superior (clave de sol)
+  const topY = 30;
+  for(let i=0;i<5;i++){
+    const y = topY + i * lineGap;
+    ctx.beginPath();
+    ctx.moveTo(left, y);
+    ctx.lineTo(right, y);
+    ctx.stroke();
+  }
+
+  // Pentagrama inferior (clave de fa)
+  const bottomY = 100;
+  for(let i=0;i<5;i++){
+    const y = bottomY + i * lineGap;
+    ctx.beginPath();
+    ctx.moveTo(left, y);
+    ctx.lineTo(right, y);
+    ctx.stroke();
+  }
+
+  // Dibujar claves (simples, usando caracteres musicales)
+  ctx.fillText("𝄞", 10, topY + 20);   // clave de sol
+  ctx.fillText("𝄢", 10, bottomY + 20); // clave de fa
+}
+
+// convierte un número MIDI a coordenada Y en el canvas (aproximada)
+function midiToStaffY(midi) {
+  // Parámetros ajustables si quieres mover visualmente las notas
+  const lineGap = 12;
+  const topY = 30;     // línea superior del pentagrama de sol
+  const bottomY = 100; // línea superior del pentagrama de fa
+
+  // Decidir en qué pentagrama dibujar: si midi >= 60 (C4) dibujamos en pentagrama de sol, sino en fa.
+  if (midi >= 60) {
+    // referencia: midi 72 (C5) estará centrado cerca de la 2ª línea (ajusta si quieres)
+    const semitonePx = 6; // cuantos px por semitono (ajusta)
+    // colocamos midi 72 en y = topY + 2 * lineGap (aprox)
+    const refMidi = 72; // C5
+    const refY = topY + 2 * lineGap;
+    return refY - (midi - refMidi) * semitonePx;
+  } else {
+    // para bajos: referencia midi 48 (C3)
+    const semitonePx = 6;
+    const refMidi = 48; // C3
+    const refY = bottomY + 2 * lineGap;
+    return refY - (midi - refMidi) * semitonePx;
+  }
+}
+
+// dibuja una cabeza de nota (óvalo) y líneas auxiliares si hace falta
+function drawNoteOnStaff(midi) {
+  if(!staffCtx) return;
+  drawStaff();
+  const ctx = staffCtx;
+  const x = 140; // posición horizontal fija para la nota (cambia si quieres varias notas en fila)
+  const y = midiToStaffY(midi);
+
+  // cabeza de nota (óvalo)
+  ctx.fillStyle = '#012'; // color oscuro
+  ctx.beginPath();
+  ctx.ellipse(x, y, 9, 6, Math.PI * 0.15, 0, Math.PI * 2);
+  ctx.fill();
+
+  // si la nota está muy arriba o abajo, dibujar líneas de repuesto (ledger lines)
+  const topStaffLine = 30;
+  const bottomStaffLine = 100 + 4 * 12; // la última línea del pentagrama inferior
+
+  // si y < topStaffLine - 8 -> dibuja ledger lines ascendentes
+  let ledgerY = null;
+  if (y < topStaffLine - 10) {
+    ledgerY = y;
+    // dibujar una pequeña línea horizontal sobre la nota
+    ctx.strokeStyle = '#0b0f12';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x - 16, ledgerY);
+    ctx.lineTo(x + 16, ledgerY);
+    ctx.stroke();
+  } else if (y > bottomStaffLine + 10) {
+    ledgerY = y;
+    ctx.strokeStyle = '#0b0f12';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x - 16, ledgerY);
+    ctx.lineTo(x + 16, ledgerY);
+    ctx.stroke();
+  }
+}
+
+// dibujar inicialmente el pentagrama vacío
+drawStaff();
 // Tocar una nota
 function noteOn(idx, velocity=1){
   const n = notes[idx];
@@ -337,7 +452,10 @@ function noteOn(idx, velocity=1){
   activeVoices.set(idx, { src, gain, release: parseFloat(releaseEl.value), released:false });
 
   markKey(idx, true);
-}
+
+  // mostrar en el pentagrama (usa el número MIDI de la nota)
+  drawNoteOnStaff(n.midi);
+  }
 
 function noteOff(idx){
   const v = activeVoices.get(idx);
@@ -508,10 +626,7 @@ clearEarButtons();
   
 // pointer events
 let sustainOn = false;
-// --- GLISSANDO (deslizamiento) ---
-let glissLastIdx = null;   // tecla anterior durante el deslizamiento
-let glissPressed = false;  // si el dedo está presionando el teclado
-  sustainBtn.addEventListener('click', ()=> { sustainOn = !sustainOn; sustainBtn.textContent = 'Sustain: ' + (sustainOn ? 'on' : 'off'); sustainBtn.classList.toggle('primary', sustainOn); if(!sustainOn) releaseAllHeld(); });
+sustainBtn.addEventListener('click', ()=> { sustainOn = !sustainOn; sustainBtn.textContent = 'Sustain: ' + (sustainOn ? 'on' : 'off'); sustainBtn.classList.toggle('primary', sustainOn); if(!sustainOn) releaseAllHeld(); });
 
 function bindPointers(){
   const allKeys = keyboardEl.querySelectorAll('.white, .black');
@@ -527,29 +642,17 @@ function bindPointers(){
       noteOn(idx, vel);
       try{ k.setPointerCapture(ev.pointerId); }catch(e){}
     });
-    // 🎹 Tocar al deslizar (glissando real)
-k.addEventListener('pointermove', ev=>{
-  if(ev.buttons !== 1) return; // solo si el dedo está presionando
-  const idx = parseInt(k.dataset.index,10);
-  if(glissLastIdx !== idx){   // si cambiamos de tecla
-    if(glissLastIdx !== null) noteOff(glissLastIdx); // soltar la anterior
-    noteOn(idx, 0.9); // tocar la nueva
-    glissLastIdx = idx;
-  }
-});
     k.addEventListener('pointerup', ev=>{
-  ev.preventDefault();
-  const idx = parseInt(k.dataset.index,10);
-  noteOff(idx);           // soltar la tecla
-  glissLastIdx = null;    // reiniciar la variable de glissando
-  try{ k.releasePointerCapture(ev.pointerId);}catch(e){}
-});
+      ev.preventDefault();
+      const idx = parseInt(k.dataset.index,10);
+      noteOff(idx);
+      try{ k.releasePointerCapture(ev.pointerId);}catch(e){}
+    });
     k.addEventListener('pointercancel', ev=> { const idx = parseInt(k.dataset.index,10); noteOff(idx); });
   });
 }
 setTimeout(()=>{ positionBlackKeys(); bindPointers(); }, 140);
-
-  window.addEventListener('resize', ()=> setTimeout(()=>{ positionBlackKeys(); bindPointers(); }, 80));
+window.addEventListener('resize', ()=> setTimeout(()=>{ positionBlackKeys(); bindPointers(); }, 80));
 
 // keyboard mapping
 const rows = [
@@ -585,4 +688,4 @@ resetBtn.addEventListener('click', ()=> {
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
 </script>
 </body>
-                                   </html>
+                                                                       </html>
