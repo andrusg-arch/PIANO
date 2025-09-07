@@ -524,6 +524,14 @@ function bindPointers(){
       noteOn(idx, vel);
       try{ k.setPointerCapture(ev.pointerId); }catch(e){}
     });
+    // 🎹 Tocar al deslizar
+k.addEventListener('pointermove', ev=>{
+  if(ev.buttons !== 1) return; // solo si el dedo está presionando
+  const idx = parseInt(k.dataset.index,10);
+  if(!activeVoices.has(idx)){   // si no está ya sonando
+    noteOn(idx, 0.9);
+  }
+});
     k.addEventListener('pointerup', ev=>{
       ev.preventDefault();
       const idx = parseInt(k.dataset.index,10);
