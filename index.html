@@ -48,6 +48,18 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
 .social a{color:var(--accent);text-decoration:none;margin:0 8px}
 @media (max-width:900px){ .white{width:48px} .black{width:19px} .white-keys{height:260px} }
 @media (max-width:560px){ .white{width:40px} .white-keys{height:220px} .controls{gap:8px} }
+/* --- Ear Trainer UI --- */
+.ear-trainer-wrap { margin-top:10px; border-radius:10px; padding:8px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); display:block; }
+#toggleEarBtn { background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;cursor:pointer;margin-bottom:8px; }
+#earTrainerPanel { display:none; padding:8px 6px; border-radius:8px; }
+.ear-controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+.ear-controls .counters { color:var(--muted); font-size:13px; margin-left:8px; }
+.ear-keys { display:flex; flex-wrap:wrap; gap:6px; }
+.ear-btn { min-width:44px; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:transparent; cursor:pointer; font-weight:700; }
+.ear-btn.correct { background:#22c55e; color:#012; border-color:rgba(0,0,0,0.12); }
+.ear-btn.wrong { background:#ef4444; color:#fff; border-color:rgba(0,0,0,0.12); }
+.ear-actions { margin-left:auto; display:flex; gap:8px; }
+@media (max-width:560px){ .ear-btn{ min-width:38px; padding:6px 8px } }
 </style>
 </head>
 <body>
@@ -71,7 +83,39 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
       <div class="control-group"><label class="small">Reverb</label><input id="reverb" type="range" min="0" max="0.8" step="0.01" value="0.12"></div>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center"><button id="sustainBtn">Sustain: off</button><button id="resetBtn" class="primary">Reset</button></div>
     </div>
+<!-- EAR TRAINER (desplegable) -->
+<div class="ear-trainer-wrap">
+  <button id="toggleEarBtn" aria-expanded="false">Ear Trainer ▸</button>
+  <div id="earTrainerPanel" aria-hidden="true">
+    <div class="ear-controls">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="playTargetBtn" class="ear-action">🔊 Play</button>
+        <button id="repeatBtn" class="ear-action">Repetir</button>
+        <button id="nextBtn" class="ear-action">Siguiente</button>
+      </div>
+      <div class="ear-actions">
+        <div class="counters">Correctas: <strong id="correctCount">0</strong> &nbsp;|&nbsp; Incorrectas: <strong id="wrongCount">0</strong></div>
+      </div>
+    </div>
 
+    <div class="ear-keys" role="group" aria-label="Opciones de nota">
+      <!-- 12 semicorcheas (botones) -->
+      <button class="ear-btn" data-note="C">C</button>
+      <button class="ear-btn" data-note="C#">C#</button>
+      <button class="ear-btn" data-note="D">D</button>
+      <button class="ear-btn" data-note="D#">D#</button>
+      <button class="ear-btn" data-note="E">E</button>
+      <button class="ear-btn" data-note="F">F</button>
+      <button class="ear-btn" data-note="F#">F#</button>
+      <button class="ear-btn" data-note="G">G</button>
+      <button class="ear-btn" data-note="G#">G#</button>
+      <button class="ear-btn" data-note="A">A</button>
+      <button class="ear-btn" data-note="A#">A#</button>
+      <button class="ear-btn" data-note="B">B</button>
+    </div>
+  </div>
+</div>
+<!-- /EAR TRAINER -->
     <div class="keyboard-wrap" role="application" aria-label="Piano">
       <div id="keyboard" class="keyboard" tabindex="0" aria-label="Piano keyboard">
         <div id="whiteContainer" class="white-keys" aria-hidden="false"></div>
@@ -300,6 +344,156 @@ function noteOff(idx){
   markKey(idx, false);
   }
 
+/* -------------------- EAR TRAINER -------------------- */
+/* Asegura markKey si no existe (fallback seguro) */
+if (typeof markKey === 'undefined') {
+  function markKey(idx, pressed) {
+    const el = keyboardEl.querySelector('[data-index="'+idx+'"]');
+    if(!el) return;
+    if (pressed) el.classList.add('pressed'); else el.classList.remove('pressed');
+  }
+}
+
+/* Estado del entrenador */
+const ear = { targetIdx: null, targetName: null, correct: 0, wrong: 0 };
+
+/* DOM refs */
+const toggleEarBtn = document.getElementById('toggleEarBtn');
+const earPanel = document.getElementById('earTrainerPanel');
+const playTargetBtn = document.getElementById('playTargetBtn');
+const repeatBtn = document.getElementById('repeatBtn');
+const nextBtn = document.getElementById('nextBtn');
+const correctCountEl = document.getElementById('correctCount');
+const wrongCountEl = document.getElementById('wrongCount');
+const earButtons = Array.from(document.querySelectorAll('.ear-btn'));
+
+/* Toggle panel */
+toggleEarBtn.addEventListener('click', ()=>{
+  const visible = earPanel.style.display === 'block';
+  earPanel.style.display = visible ? 'none' : 'block';
+  toggleEarBtn.textContent = visible ? 'Ear Trainer ▸' : 'Ear Trainer ▾';
+  toggleEarBtn.setAttribute('aria-expanded', !visible);
+  earPanel.setAttribute('aria-hidden', visible);
+});
+
+/* util: limpiar estados visuales de botones */
+function clearEarButtons(){
+  earButtons.forEach(b => { b.classList.remove('correct','wrong'); b.disabled = false; });
+}
+
+/* reproducir nota como preview sin tocar activeVoices (no interactúa con sustain) */
+function playPreview(idx, duration = 1.0){
+  const n = notes[idx];
+  if(!n) return;
+  const sampleKey = getSampleForNote(n.name);
+  const now = audioCtx.currentTime;
+
+  // marcar visual breve
+  markKey(idx, true);
+
+  if (sampleKey && sampleMap[sampleKey]) {
+    const buffer = sampleMap[sampleKey];
+    const sampleFreq = notes.find(x => x.name === sampleKey).freq;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = n.freq / sampleFreq;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(1.0, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    src.connect(g).connect(masterGain);
+    src.start(now);
+    src.stop(now + duration + 0.02);
+    setTimeout(()=> markKey(idx, false), 220);
+  } else {
+    // fallback oscillator
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(n.freq, now);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.8, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(g).connect(masterGain);
+    osc.start(now);
+    osc.stop(now + duration + 0.02);
+    setTimeout(()=> markKey(idx, false), 220);
+  }
+}
+
+/* elegir nota aleatoria y reproducir */
+function pickRandomTarget(){
+  clearEarButtons();
+  const idx = Math.floor(Math.random() * notes.length);
+  ear.targetIdx = idx;
+  ear.targetName = notes[idx].name.slice(0, -1); // quitar octava
+  playPreview(idx, 1.0);
+}
+
+/* reproducir objetivo actual (si existe) */
+function playTarget(){
+  if(ear.targetIdx === null) pickRandomTarget();
+  else playPreview(ear.targetIdx, 1.0);
+}
+
+/* manejar respuesta del usuario */
+function handleGuess(label, buttonEl){
+  if(ear.targetIdx === null) return;
+  // deshabilitar temporalmente botones para evitar spam
+  earButtons.forEach(b=> b.disabled = true);
+
+  const correctLabel = ear.targetName; // ej "C#", "G"
+  if(label === correctLabel){
+    // acierto
+    ear.correct += 1;
+    buttonEl.classList.add('correct');
+    correctCountEl.textContent = ear.correct;
+    // iluminar brevemente la tecla real del piano
+    // (buscamos una instancia de esa nota en cualquier octava y la marcamos breve)
+    const idx = notes.findIndex(n => n.name.slice(0,-1) === label);
+    if(idx >= 0) { markKey(idx, true); setTimeout(()=>markKey(idx,false),300); }
+  } else {
+    // error
+    ear.wrong += 1;
+    buttonEl.classList.add('wrong');
+    wrongCountEl.textContent = ear.wrong;
+    // marcar la correcta en verde
+    const correctBtn = earButtons.find(b=> b.dataset.note === correctLabel);
+    if(correctBtn) correctBtn.classList.add('correct');
+    // iluminar la tecla real
+    const idx = notes.findIndex(n => n.name.slice(0,-1) === correctLabel);
+    if(idx >= 0) { markKey(idx, true); setTimeout(()=>markKey(idx,false),300); }
+  }
+
+  // después de un pequeño delay, permitir avanzar (o el usuario usa 'Siguiente')
+  setTimeout(()=> { earButtons.forEach(b=> b.disabled = false); }, 700);
+}
+
+/* eventos de los botones de nota */
+earButtons.forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const label = btn.dataset.note;
+    handleGuess(label, btn);
+  });
+});
+
+/* acciones: play, repeat, next */
+playTargetBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  playTarget();
+});
+repeatBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  playTarget();
+});
+nextBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  pickRandomTarget();
+});
+
+/* inicializar (puedes elegir iniciar con una nota automática si quieres) */
+clearEarButtons();
+  
 // pointer events
 let sustainOn = false;
 sustainBtn.addEventListener('click', ()=> { sustainOn = !sustainOn; sustainBtn.textContent = 'Sustain: ' + (sustainOn ? 'on' : 'off'); sustainBtn.classList.toggle('primary', sustainOn); if(!sustainOn) releaseAllHeld(); });
