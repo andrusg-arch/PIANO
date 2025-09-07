@@ -211,6 +211,21 @@ const activeVoices = new Map();
 const sampleMap = {};
 const baseNotes = ["C2","C3","C4","C5","C6"];
 
+// --- Visual: marcar / desmarcar tecla en pantalla ---
+function markKey(idx, pressed) {
+  // busca la tecla (blanca o negra) dentro del keyboard
+  const el = keyboardEl.querySelector('[data-index="'+idx+'"]');
+  if(!el) return;
+  if (pressed) el.classList.add('pressed');
+  else el.classList.remove('pressed');
+  }
+  function clearAllPressed(){
+  const all = keyboardEl.querySelectorAll('.pressed');
+  all.forEach(el => el.classList.remove('pressed'));
+}
+window.addEventListener('mouseup', clearAllPressed);
+window.addEventListener('touchend', clearAllPressed);
+window.addEventListener('blur', clearAllPressed); // cuando la ventana pierde foco
 // Cargar samples en memoria
 async function loadSamples() {
   for (let note of baseNotes) {
