@@ -527,53 +527,28 @@ function bindPointers(){
       noteOn(idx, vel);
       try{ k.setPointerCapture(ev.pointerId); }catch(e){}
     });
-    // 🎹 Tocar al deslizar
+    // 🎹 Tocar al deslizar (glissando real)
 k.addEventListener('pointermove', ev=>{
   if(ev.buttons !== 1) return; // solo si el dedo está presionando
   const idx = parseInt(k.dataset.index,10);
-  if(!activeVoices.has(idx)){   // si no está ya sonando
-    noteOn(idx, 0.9);
+  if(glissLastIdx !== idx){   // si cambiamos de tecla
+    if(glissLastIdx !== null) noteOff(glissLastIdx); // soltar la anterior
+    noteOn(idx, 0.9); // tocar la nueva
+    glissLastIdx = idx;
   }
 });
     k.addEventListener('pointerup', ev=>{
-      ev.preventDefault();
-      const idx = parseInt(k.dataset.index,10);
-      noteOff(idx);
-      try{ k.releasePointerCapture(ev.pointerId);}catch(e){}
-    });
+  ev.preventDefault();
+  const idx = parseInt(k.dataset.index,10);
+  noteOff(idx);           // soltar la tecla
+  glissLastIdx = null;    // reiniciar la variable de glissando
+  try{ k.releasePointerCapture(ev.pointerId);}catch(e){}
+});
     k.addEventListener('pointercancel', ev=> { const idx = parseInt(k.dataset.index,10); noteOff(idx); });
   });
 }
 setTimeout(()=>{ positionBlackKeys(); bindPointers(); }, 140);
-// --- GLISSANDO: tocar al deslizar por todo el teclado ---
-keyboardEl.addEventListener('pointerdown', (e) => {
-  glissPressed = true;
-  // asegurar audio si está en suspended
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  const keyEl = el ? el.closest('.white, .black') : null;
-  if (keyEl) {
-    const idx = parseInt(keyEl.dataset.index, 10);
-    glissLastIdx = idx;
-    // usar playPreview para reproducir nota breve y auto-stop (no usa activeVoices)
-    playPreview(idx, 0.9);
-  }
-});
 
-keyboardEl.addEventListener('pointermove', (e) => {
-  if (!glissPressed) return;
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  const keyEl = el ? el.closest('.white, .black') : null;
-  if (!keyEl) return;
-  const idx = parseInt(keyEl.dataset.index, 10);
-  if (idx !== glissLastIdx) {
-    glissLastIdx = idx;
-    playPreview(idx, 0.9); // duración del preview (ajusta si quieres más/menos)
-  }
-});
-
-keyboardEl.addEventListener('pointerup', ()=> { glissPressed = false; glissLastIdx = null; });
-keyboardEl.addEventListener('pointercancel', ()=> { glissPressed = false; glissLastIdx = null; });
   window.addEventListener('resize', ()=> setTimeout(()=>{ positionBlackKeys(); bindPointers(); }, 80));
 
 // keyboard mapping
