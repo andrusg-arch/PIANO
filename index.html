@@ -550,10 +550,10 @@ function noteOff(idx) {
 
   // 3) Si hay sustain y la voz aún no fue marcada como 'released', no la detengas ahora (audio sigue),
   //    pero la figura ya fue retirada visualmente.
-  if (sustainOn && !v.released) {
-    v.released = true;
-    markKey(idx, false);
-    return;
+  if (sustainOn) {
+  v.released = true; // dejar que el release se haga cuando se apague sustain
+  markKey(idx, false);
+  return;
   }
 
   // 4) Si no hay sustain (o ya está marcada released), hacemos fade out y paramos la fuente
