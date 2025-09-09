@@ -333,8 +333,8 @@ function drawStaff() {
   const ctx = staffCtx;
   ctx.clearRect(0,0,staffCanvas.width, staffCanvas.height);
   ctx.lineWidth = 1;
-  ctx.strokeStyle = '#000';
-  ctx.fillStyle = '#000';
+  ctx.strokeStyle = '#fff';
+  ctx.fillStyle = '#fff';
   ctx.font = "28px serif";
 
   const left = 40;
@@ -403,7 +403,7 @@ function drawNoteOnStaff(midi) {
   const y = midiToStaffY(midi);
 
   // cabeza de la nota
-  ctx.fillStyle = '#000';
+  ctx.fillStyle = '#fff';
   ctx.beginPath();
   ctx.ellipse(x, y, 9, 6, Math.PI*0.1, 0, Math.PI*2);
   ctx.fill();
