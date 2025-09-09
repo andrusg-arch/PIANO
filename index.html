@@ -549,18 +549,24 @@ function noteOff(idx) {
   const now = audioCtx.currentTime;
 
   if (sustainOn) {
-    // si sustain está activo, solo marcar como released (se detendrá al apagar sustain)
+    // si sustain está activo, solo marcar como released (la nota seguirá sonando)
     v.released = true;
     markKey(idx, false);
     return;
   }
 
-  // Si sustain está apagado → cortar la nota inmediatamente
+  // ===============================
+  // CORTE DEFINITIVO INMEDIATO
+  // ===============================
   try {
+    // cancelar cualquier rampa
     v.gain.gain.cancelScheduledValues(now);
-    v.gain.gain.setValueAtTime(0.0001, now); // corte inmediato
-    try { v.src.stop(now); } catch(e) {}
-  } catch(e) {}
+    // cortar sonido inmediatamente
+    v.gain.gain.setValueAtTime(0.0001, now);
+    if (v.src.stop) {
+      try { v.src.stop(now); } catch(e){ /* ignorar errores */ }
+    }
+  } catch(e){}
 
   activeVoices.delete(idx);
   markKey(idx, false);
