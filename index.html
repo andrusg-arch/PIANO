@@ -112,69 +112,72 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
 <!-- Pentagrama (pequeño, no molesta) -->
 <canvas id="staffCanvas" width="520" height="180" style="display:block;margin:8px auto 12px;max-width:520px;width:100%;height:auto;border-radius:8px;"></canvas>
     <!-- EAR TRAINER (desplegable) -->
-<div class="ear-trainer-wrap">
-  <button id="toggleEarBtn" aria-expanded="false">Ear Trainer ▸</button>
-  <div id="earTrainerPanel" aria-hidden="true">
-    <div class="ear-controls">
-      <div style="display:flex;gap:8px;align-items:center">
-        <button id="playTargetBtn" class="ear-action">🔊 Play</button>
-        <button id="repeatBtn" class="ear-action">Repetir</button>
-        <button id="nextBtn" class="ear-action">Siguiente</button>
+<!-- EAR TRAINER (desplegable) -->
+<div class="ear-trainer-wrap" style="display:flex;gap:8px;align-items:flex-start;">
+  <div style="flex:1">
+    <button id="toggleEarBtn" aria-expanded="false">Ear Trainer ▸</button>
+    <div id="earTrainerPanel" aria-hidden="true">
+      <div class="ear-controls">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="playTargetBtn" class="ear-action">🔊 Play</button>
+          <button id="repeatBtn" class="ear-action">Repetir</button>
+          <button id="nextBtn" class="ear-action">Siguiente</button>
+        </div>
+        <div class="ear-actions">
+          <div class="counters">Correctas: <strong id="correctCount">0</strong> &nbsp;|&nbsp; Incorrectas: <strong id="wrongCount">0</strong></div>
+        </div>
       </div>
-      <div class="ear-actions">
-        <div class="counters">Correctas: <strong id="correctCount">0</strong> &nbsp;|&nbsp; Incorrectas: <strong id="wrongCount">0</strong></div>
-      </div>
-    </div>
 
-<div class="ear-keys" role="group" aria-label="Opciones de nota">
-  <button class="ear-btn" data-note="C">C</button>
-  <button class="ear-btn" data-note="C#">C♯/D♭</button>
-  <button class="ear-btn" data-note="D">D</button>
-  <button class="ear-btn" data-note="D#">D♯/E♭</button>
-  <button class="ear-btn" data-note="E">E</button>
-  <button class="ear-btn" data-note="F">F</button>
-  <button class="ear-btn" data-note="F#">F♯/G♭</button>
-  <button class="ear-btn" data-note="G">G</button>
-  <button class="ear-btn" data-note="G#">G♯/A♭</button>
-  <button class="ear-btn" data-note="A">A</button>
-  <button class="ear-btn" data-note="A#">A♯/B♭</button>
-  <button class="ear-btn" data-note="B">B</button>
-</div>
-  </div>
-</div>
-<!-- /EAR TRAINER -->
-    <!-- INTERVAL TRAINER (desplegable) -->
-<div class="ear-trainer-wrap" style="margin-top:12px;">
-  <button id="toggleIntervalBtn" aria-expanded="false">Interval Trainer ▸</button>
-  <div id="intervalTrainerPanel" aria-hidden="true">
-    <div class="ear-controls">
-      <div style="display:flex;gap:8px;align-items:center">
-        <button id="playIntervalBtn" class="ear-action">🔊 Play</button>
-        <button id="repeatIntervalBtn" class="ear-action">Repetir</button>
-        <button id="nextIntervalBtn" class="ear-action">Siguiente</button>
+      <div class="ear-keys" role="group" aria-label="Opciones de nota">
+        <button class="ear-btn" data-note="C">C</button>
+        <button class="ear-btn" data-note="C#">C♯/D♭</button>
+        <button class="ear-btn" data-note="D">D</button>
+        <button class="ear-btn" data-note="D#">D♯/E♭</button>
+        <button class="ear-btn" data-note="E">E</button>
+        <button class="ear-btn" data-note="F">F</button>
+        <button class="ear-btn" data-note="F#">F♯/G♭</button>
+        <button class="ear-btn" data-note="G">G</button>
+        <button class="ear-btn" data-note="G#">G♯/A♭</button>
+        <button class="ear-btn" data-note="A">A</button>
+        <button class="ear-btn" data-note="A#">A♯/B♭</button>
+        <button class="ear-btn" data-note="B">B</button>
       </div>
-      <div class="ear-actions">
-        <div class="counters">Correctas: <strong id="intervalCorrectCount">0</strong> &nbsp;|&nbsp; Incorrectas: <strong id="intervalWrongCount">0</strong></div>
-      </div>
-    </div>
-
-    <div class="ear-keys" role="group" aria-label="Opciones de intervalo">
-      <button class="ear-btn" data-interval="unison">Unísono</button>
-      <button class="ear-btn" data-interval="minor2">2m</button>
-      <button class="ear-btn" data-interval="major2">2M</button>
-      <button class="ear-btn" data-interval="minor3">3m</button>
-      <button class="ear-btn" data-interval="major3">3M</button>
-      <button class="ear-btn" data-interval="perfect4">4P</button>
-      <button class="ear-btn" data-interval="tritone">TT</button>
-      <button class="ear-btn" data-interval="perfect5">5P</button>
-      <button class="ear-btn" data-interval="minor6">6m</button>
-      <button class="ear-btn" data-interval="major6">6M</button>
-      <button class="ear-btn" data-interval="minor7">7m</button>
-      <button class="ear-btn" data-interval="major7">7M</button>
-      <button class="ear-btn" data-interval="octave">8P</button>
     </div>
   </div>
-</div>
+
+  <!-- INTERVAL TRAINER al lado -->
+  <div style="flex:1">
+    <button id="toggleIntervalBtn" aria-expanded="false">Interval Trainer ▸</button>
+    <div id="intervalTrainerPanel" aria-hidden="true">
+      <div class="ear-controls">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="playIntervalBtn" class="ear-action">🔊 Play</button>
+          <button id="repeatIntervalBtn" class="ear-action">Repetir</button>
+          <button id="nextIntervalBtn" class="ear-action">Siguiente</button>
+        </div>
+        <div class="ear-actions">
+          <div class="counters">Correctas: <strong id="intervalCorrectCount">0</strong> &nbsp;|&nbsp; Incorrectas: <strong id="intervalWrongCount">0</strong></div>
+        </div>
+      </div>
+
+      <div class="ear-keys" role="group" aria-label="Opciones de intervalo">
+        <button class="ear-btn" data-interval="unison">Unísono</button>
+        <button class="ear-btn" data-interval="minor2">2m</button>
+        <button class="ear-btn" data-interval="major2">2M</button>
+        <button class="ear-btn" data-interval="minor3">3m</button>
+        <button class="ear-btn" data-interval="major3">3M</button>
+        <button class="ear-btn" data-interval="perfect4">4P</button>
+        <button class="ear-btn" data-interval="tritone">TT</button>
+        <button class="ear-btn" data-interval="perfect5">5P</button>
+        <button class="ear-btn" data-interval="minor6">6m</button>
+        <button class="ear-btn" data-interval="major6">6M</button>
+        <button class="ear-btn" data-interval="minor7">7m</button>
+        <button class="ear-btn" data-interval="major7">7M</button>
+        <button class="ear-btn" data-interval="octave">8P</button>
+      </div>
+    </div>
+  </div>
+  </div>
 <!-- /INTERVAL TRAINER -->
     <div class="keyboard-wrap" role="application" aria-label="Piano">
       <div id="keyboard" class="keyboard" tabindex="0" aria-label="Piano keyboard">
