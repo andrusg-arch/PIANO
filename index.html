@@ -324,6 +324,8 @@ function getSampleForNote(noteName) {
 const staffCanvas = document.getElementById('staffCanvas');
 const staffCtx = staffCanvas ? staffCanvas.getContext('2d') : null;
 
+  // mantenemos lista de notas que están sonando en el pentagrama
+let activeStaffNotes = [];
 // nombres de notas en orden (do–si)
 const noteNames = ["C","D","E","F","G","A","B"];
 
@@ -409,42 +411,62 @@ function midiToStaffY(midi) {
   }
 
 // Dibuja una nota en el pentagrama
-function drawNoteOnStaff(midi) {
-  if(!staffCtx) return;
+function drawActiveStaffNotes() {
+  if (!staffCtx) return;
+  // limpiar el pentagrama antes de dibujar
+  staffCtx.clearRect(0, 0, staffCanvas.width, staffCanvas.height);
+
+  // volver a dibujar el pentagrama vacío
   drawStaff();
+
   const ctx = staffCtx;
-
-  const x = 140;
-  const y = midiToStaffY(midi);
-
-  // cabeza de la nota
   ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.ellipse(x, y, 9, 6, Math.PI*0.1, 0, Math.PI*2);
-  ctx.fill();
-// Línea adicional para Do central (C4)
-// comprobamos por número MIDI (C4 = 60) para evitar dependencias de texto
-if (midi === 60) {
-  ctx.beginPath();
-  ctx.moveTo(x - 12, y);
-  ctx.lineTo(x + 12, y);
-  ctx.stroke();
-  }
-  
-  // alteraciones ♯ y ♭
-  const noteName = midiToNoteName(midi);
-  if(noteName.includes("#")) ctx.fillText("♯", x-18, y+5);
-  if(noteName.includes("b")) ctx.fillText("♭", x-18, y+5);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1;
+  ctx.font = "20px serif";
 
-  // línea adicional si queda fuera del pentagrama
-  const topLineY = 40;
-  const bottomLineY = 140 + 4*12;
-  if (y < topLineY - 6 || y > bottomLineY + 6) {
+  const xCenter = 140;   // centro donde se dibujan las notas
+  const spacing = 26;    // espacio entre cabezas si hay varias
+
+  const notesToDraw = Array.from(new Set(activeStaffNotes)).sort((a,b)=>a-b);
+  const count = notesToDraw.length;
+
+  const topY = 40;
+  const bottomY = 120;
+  const lineGap = 12;
+  const bottomLineY = bottomY + 4 * lineGap;
+
+  notesToDraw.forEach((midi, i) => {
+    const offsetIndex = i - (count - 1) / 2;
+    const x = xCenter + offsetIndex * spacing;
+    const y = midiToStaffY(midi);
+
+    // cabeza de nota
     ctx.beginPath();
-    ctx.moveTo(x-12, y);
-    ctx.lineTo(x+12, y);
-    ctx.stroke();
-  }
+    ctx.ellipse(x, y, 9, 6, Math.PI * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // alteraciones
+    const noteName = midiToNoteName(midi);
+    if (noteName.includes("#")) ctx.fillText("♯", x - 18, y + 5);
+    if (noteName.includes("b")) ctx.fillText("♭", x - 18, y + 5);
+
+    // líneas adicionales
+    if (y < topY - 6 || y > bottomLineY + 6) {
+      ctx.beginPath();
+      ctx.moveTo(x - 12, y);
+      ctx.lineTo(x + 12, y);
+      ctx.stroke();
+    }
+
+    // línea para Do central (C4)
+    if (midi === 60) {
+      ctx.beginPath();
+      ctx.moveTo(x - 12, y);
+      ctx.lineTo(x + 12, y);
+      ctx.stroke();
+    }
+  });
   }
 
 // Dibuja el pentagrama vacío al inicio
@@ -506,43 +528,34 @@ function noteOn(idx, velocity=1){
 
   // Visual + pentagrama
   markKey(idx, true);
-  drawNoteOnStaff(n.midi);
+  if (!activeStaffNotes.includes(n.midi)) activeStaffNotes.push(n.midi);
+drawActiveStaffNotes();
   }
 
 function noteOff(idx){
+  const v = activeVoices.get(idx);
+  if(!v) return;
+
+  const midiValue = notes[idx] ? notes[idx].midi : null;
+
+  if(sustainOn && !v.released){
+    v.released = true;
+    return;
+  }
+
   const now = audioCtx.currentTime;
-  const prefix = String(idx) + "_";
+  v.gain.gain.linearRampToValueAtTime(0.0001, now + v.release);
+  try { v.src.stop(now + v.release + 0.05); } catch(e){}
 
-  // recopilamos claves a detener (para no modificar Map mientras iteramos)
-  const keysToStop = [];
-  activeVoices.forEach((v, key) => {
-    if (String(key).startsWith(prefix)) keysToStop.push(key);
-  });
-
-  keysToStop.forEach(key => {
-    const v = activeVoices.get(key);
-    if (!v) return;
-
-    // si sustain está activado, marcamos released y dejamos sonando
-    if (sustainOn && !v.released) {
-      v.released = true;
-      return;
+  setTimeout(()=> {
+    activeVoices.delete(idx);
+    if (midiValue !== null) {
+      activeStaffNotes = activeStaffNotes.filter(m => m !== midiValue);
+      drawActiveStaffNotes();
     }
+  }, (v.release+0.1)*1000);
 
-    // rampa de salida usando release guardado o el slider
-    const rel = (typeof v.release === 'number') ? v.release : Math.max(0.01, parseFloat(releaseEl.value));
-    try {
-      v.gain.gain.cancelScheduledValues(now);
-      v.gain.gain.linearRampToValueAtTime(0.0001, now + rel);
-      // parar la fuente después de la release
-      v.src.stop(now + rel + 0.05);
-    } catch(e) {
-      // ignore
-    }
-    setTimeout(() => activeVoices.delete(key), (rel + 0.15) * 1000);
-  });
-
-  markKey(idx, false);
+  markKey(idx,false);
   }
 
 /* -------------------- EAR TRAINER -------------------- */
