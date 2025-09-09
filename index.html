@@ -471,9 +471,9 @@ function drawActiveStaffNotes() {
 
 // Dibuja el pentagrama vacío al inicio
 drawStaff();
-function noteOn(idx, velocity=1){
+function noteOn(idx, velocity = 1) {
   const n = notes[idx];
-  if(!n) return;
+  if (!n) return;
 
   const now = audioCtx.currentTime;
   const selectedVoice = voiceSelect.value;
@@ -494,11 +494,10 @@ function noteOn(idx, velocity=1){
       src.connect(gain).connect(masterGain);
       src.start(now);
 
-      const keyPiano = String(idx) + "_piano";
-      activeVoices.set(keyPiano, { src, gain, release: parseFloat(releaseEl.value), released:false });
+      // guardar bajo la clave numérica idx (coincide con noteOff)
+      activeVoices.set(idx, { src, gain, release: parseFloat(releaseEl.value), released: false });
     }
   }
-
   // --- Opción 2: Voces sintéticas ---
   else {
     const osc = audioCtx.createOscillator();
@@ -522,40 +521,58 @@ function noteOn(idx, velocity=1){
     osc.connect(g).connect(masterGain);
     osc.start(now);
 
-    const keyOsc = String(idx) + "_osc";
-    activeVoices.set(keyOsc, { src: osc, gain: g, release: rel, released:false });
+    // guardar bajo la clave numérica idx
+    activeVoices.set(idx, { src: osc, gain: g, release: rel, released: false });
   }
 
-  // Visual + pentagrama
+  // Visual + pentagrama (añadir la nota y redibujar)
   markKey(idx, true);
   if (!activeStaffNotes.includes(n.midi)) activeStaffNotes.push(n.midi);
-drawActiveStaffNotes();
+  drawActiveStaffNotes();
   }
 
-function noteOff(idx){
-  const v = activeVoices.get(idx);
-  if(!v) return;
-
+function noteOff(idx) {
   const midiValue = notes[idx] ? notes[idx].midi : null;
 
-  if(sustainOn && !v.released){
-    v.released = true;
+  // 1) QUITAR LA FIGURA DEL PENTAGRAMA INMEDIATAMENTE al soltar
+  if (midiValue !== null) {
+    activeStaffNotes = activeStaffNotes.filter(m => m !== midiValue);
+    drawActiveStaffNotes();
+  }
+
+  // 2) Conseguir la voz (si existe) usando la misma clave numérica idx
+  const v = activeVoices.get(idx);
+  if (!v) {
+    // no había voz activa (por ejemplo sample no cargado). Solo desmarcamos la tecla.
+    markKey(idx, false);
     return;
   }
 
+  // 3) Si hay sustain y la voz aún no fue marcada como 'released', no la detengas ahora (audio sigue),
+  //    pero la figura ya fue retirada visualmente.
+  if (sustainOn && !v.released) {
+    v.released = true;
+    markKey(idx, false);
+    return;
+  }
+
+  // 4) Si no hay sustain (o ya está marcada released), hacemos fade out y paramos la fuente
   const now = audioCtx.currentTime;
-  v.gain.gain.linearRampToValueAtTime(0.0001, now + v.release);
-  try { v.src.stop(now + v.release + 0.05); } catch(e){}
+  try {
+    v.gain.gain.cancelScheduledValues(now);
+    v.gain.gain.linearRampToValueAtTime(0.0001, now + v.release);
+    try { v.src.stop(now + v.release + 0.05); } catch(e) {}
+  } catch(e) {
+    // si algo falla con la rampa/stop, intentamos forzar stop
+    try { v.src.stop(); } catch(_) {}
+  }
 
-  setTimeout(()=> {
+  // borramos el registro una vez terminado el release (para liberar memoria)
+  setTimeout(() => {
     activeVoices.delete(idx);
-    if (midiValue !== null) {
-      activeStaffNotes = activeStaffNotes.filter(m => m !== midiValue);
-      drawActiveStaffNotes();
-    }
-  }, (v.release+0.1)*1000);
+  }, (v.release + 0.12) * 1000);
 
-  markKey(idx,false);
+  markKey(idx, false);
   }
 
 /* -------------------- EAR TRAINER -------------------- */
