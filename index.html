@@ -367,15 +367,23 @@ function drawStaff() {
 
 // Calcula la posición Y de una nota en el pentagrama
 function midiToStaffY(midi) {
-  const step = 6; // cada paso diatónico
+  const lineGap = 12;         // separación entre líneas
+  const middleC = 60;         // Do4
+  const delta = midi - middleC;
 
-  const name = midiToNoteName(midi);
-  const letter = name[0];
-  const octave = parseInt(name.slice(-1));
+  // posición del Do4 en clave de sol: línea adicional inferior
+  const trebleMiddleCY = 40 + 5 * lineGap; 
 
-  const letters = ["C","D","E","F","G","A","B"];
-  function diatonicIndex(noteName, octave) {
-    return octave*7 + letters.indexOf(noteName);
+  // posición del Do4 en clave de fa: línea adicional superior
+  const bassMiddleCY = 140 - lineGap;
+
+  // Si la nota es >= Do4, usamos clave de sol, si es más grave, clave de fa
+  const referenceY = (midi >= middleC) ? trebleMiddleCY : bassMiddleCY;
+
+  // cada nota (C-D-E-F-G-A-B) ocupa medio espacio (línea/espacio)
+  const pixelsPerStep = lineGap / 2;
+
+  return referenceY - delta * pixelsPerStep;
   }
 
   // Clave de sol (G4 en segunda línea)
@@ -414,6 +422,13 @@ function drawNoteOnStaff(midi) {
   const x = 140;
   const y = midiToStaffY(midi);
 
+  if (midi === 60) {
+  // línea adicional para el Do4
+  ctx.beginPath();
+  ctx.moveTo(x - 10, y);
+  ctx.lineTo(x + 10, y);
+  ctx.stroke();
+  }
   // cabeza de la nota
   ctx.fillStyle = '#000';
   ctx.beginPath();
