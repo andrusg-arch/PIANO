@@ -379,23 +379,24 @@ function midiToStaffY(midi) {
   const faRefY = 120 + (3*12);
 
   let referenceMidi, referenceY;
-  if(midi >= 60) { // de C4 hacia arriba → clave de sol
+  if (midi >= 60) { // de C4 hacia arriba → clave de sol
     referenceMidi = solRefMidi;
     referenceY = solRefY;
-  } else {         // de B3 hacia abajo → clave de fa
+  } else {          // de B3 hacia abajo → clave de fa
     referenceMidi = faRefMidi;
     referenceY = faRefY;
   }
 
   // diferencia en semitonos con respecto a la nota de referencia
   const delta = midi - referenceMidi;
- // ajuste especial para C2–B3 (MIDI 36–59)
-// subimos 24 px para que encaje en el pentagrama de Fa
-if (midi >= 36 && midi <= 59) {
-  return (refY - delta * (step * 7 / 12)) - 12;
+  let y = referenceY - delta * (step * 7 / 12);
+
+  // ✅ Ajuste especial: subir C2..B3 dos líneas (24px) más arriba
+  if (midi >= 36 && midi <= 59) {
+    y -= 24;
   }
-  // cada línea/espacio = 1 nota diatónica = aprox 1.5 semitonos → 6px
-  return referenceY - delta * (step * 7 / 12);
+
+  return y;
   }
 
 // Dibuja una nota en el pentagrama
