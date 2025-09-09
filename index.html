@@ -407,7 +407,15 @@ function drawNoteOnStaff(midi) {
   ctx.beginPath();
   ctx.ellipse(x, y, 9, 6, Math.PI*0.1, 0, Math.PI*2);
   ctx.fill();
-
+// Línea adicional para Do central (C4)
+// comprobamos por número MIDI (C4 = 60) para evitar dependencias de texto
+if (midi === 60) {
+  ctx.beginPath();
+  ctx.moveTo(x - 12, y);
+  ctx.lineTo(x + 12, y);
+  ctx.stroke();
+  }
+  
   // alteraciones ♯ y ♭
   const noteName = midiToNoteName(midi);
   if(noteName.includes("#")) ctx.fillText("♯", x-18, y+5);
