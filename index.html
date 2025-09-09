@@ -389,7 +389,11 @@ function midiToStaffY(midi) {
 
   // diferencia en semitonos con respecto a la nota de referencia
   const delta = midi - referenceMidi;
- 
+ // ajuste especial para C2–B3 (MIDI 36–59)
+// subimos 24 px para que encaje en el pentagrama de Fa
+if (midi >= 36 && midi <= 59) {
+  return (refY - delta * (step * 7 / 12)) - 12;
+  }
   // cada línea/espacio = 1 nota diatónica = aprox 1.5 semitonos → 6px
   return referenceY - delta * (step * 7 / 12);
   }
