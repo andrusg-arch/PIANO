@@ -326,7 +326,6 @@ function midiToNoteName(midi) {
   return names[note] + octave;
 }
 
-<!-- 🔽 Reemplaza solo desde la función drawStaff hasta midiToStaffY -->
 // Dibujar las líneas del pentagrama
 function drawStaff() {
   if(!staffCtx) return;
@@ -368,28 +367,25 @@ function drawStaff() {
 
 // Calcula la posición Y de una nota en el pentagrama
 function midiToStaffY(midi) {
-  const step = 6; // cada paso diatónico equivale a 6px
+  const step = 6; // px por cada nota diatónica (línea o espacio)
 
-  // referencia en clave de sol: G4 en la segunda línea
-const solRefMidi = 67; 
-const solRefY = 40 + (1*12); // línea 2 = topY + lineGap*1
+  // Referencias
+  const solRefMidi = 67;  // G4, línea 2 en clave de sol
+  const solRefY = 40 + (1*12);
 
-// referencia en clave de fa: F3 en la cuarta línea (correcto en clave de fa)
-const faRefMidi = 53;
-const faRefY = 120 + (3*12); // línea 4 = bottomY + lineGap*3
+  const faRefMidi = 53;   // F3, línea 4 en clave de fa
+  const faRefY = 120 + (3*12);
 
   let referenceMidi, referenceY;
-  if(midi >= 60) { // de C4 hacia arriba → clave de sol
+  if(midi >= 60) { // desde C4 hacia arriba → clave de sol
     referenceMidi = solRefMidi;
     referenceY = solRefY;
-  } else {         // de B3 hacia abajo → clave de fa
+  } else {         // B3 hacia abajo → clave de fa
     referenceMidi = faRefMidi;
     referenceY = faRefY;
   }
 
-  // diferencia en semitonos con respecto a la nota de referencia
   const delta = midi - referenceMidi;
-  // cada línea/espacio = 1 nota diatónica = aprox 1.5 semitonos → 6px
   return referenceY - delta * (step * 7 / 12);
   }
 
@@ -413,15 +409,14 @@ function drawNoteOnStaff(midi) {
   if(noteName.includes("#")) ctx.fillText("♯", x-18, y+5);
   if(noteName.includes("b")) ctx.fillText("♭", x-18, y+5);
 
-  // líneas adicionales si queda fuera del rango de 5 líneas
-const topLineY = 40;
-const bottomLineY = 120 + 4*12;
-
-if (y <= topLineY || y >= bottomLineY) {
-  ctx.beginPath();
-  ctx.moveTo(x-12, y);
-  ctx.lineTo(x+12, y);
-  ctx.stroke();
+  // línea adicional si queda fuera del pentagrama
+  const topLineY = 40;
+  const bottomLineY = 140 + 4*12;
+  if (y < topLineY - 6 || y > bottomLineY + 6) {
+    ctx.beginPath();
+    ctx.moveTo(x-12, y);
+    ctx.lineTo(x+12, y);
+    ctx.stroke();
   }
   }
 
@@ -692,4 +687,4 @@ resetBtn.addEventListener('click', ()=> {
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
 </script>
 </body>
-                                                           </html>
+        </html>
