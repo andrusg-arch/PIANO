@@ -91,7 +91,8 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
   </select>
       </div></div>
       <div class="control-group"><label class="small">Volumen</label><input id="masterVol" type="range" min="0" max="1" step="0.01" value="0.88"></div>
-        <div class="control-group">
+    
+      <div class="control-group">
   <label class="small">Zoom</label>
   <input id="zoomRange" type="range" min="0.5" max="2" step="0.1" value="1">
       </div>
@@ -151,6 +152,25 @@ const audioCtx = new AudioCtx();
 const masterGain = audioCtx.createGain();
 masterGain.gain.value = 2.0;
 masterGain.connect(audioCtx.destination);
+
+const reverbGain = audioCtx.createGain();
+const delay = audioCtx.createDelay();
+const feedback = audioCtx.createGain();
+const reverbLP = audioCtx.createBiquadFilter();
+delay.delayTime.value = 0.08;
+feedback.gain.value = 0.35;
+reverbLP.type = 'lowpass';
+reverbLP.frequency.value = 3000;
+reverbGain.gain.value = 0.12;
+
+// connect reverb chain and master
+reverbGain.connect(delay);
+delay.connect(feedback);
+feedback.connect(reverbLP);
+reverbLP.connect(masterGain);
+masterGain.disconnect();
+masterGain.connect(audioCtx.destination);
+masterGain.connect(reverbGain);
 
 // UI refs
 const whiteContainer = document.getElementById('whiteContainer');
@@ -471,8 +491,8 @@ function noteOn(idx, velocity = 1) {
       // guardar bajo la clave numérica idx (coincide con noteOff)
       activeVoices.set(idx, { src, gain, release: parseFloat(releaseEl.value), released: false });
     }
-  }
   
+
   // Visual + pentagrama (añadir la nota y redibujar)
   markKey(idx, true);
   if (!activeStaffNotes.includes(n.midi)) activeStaffNotes.push(n.midi);
@@ -750,4 +770,4 @@ resetBtn.addEventListener('click', ()=> {
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
 </script>
 </body>
-  </html>
+                                   </html>
