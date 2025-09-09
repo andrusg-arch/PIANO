@@ -326,6 +326,7 @@ function midiToNoteName(midi) {
   return names[note] + octave;
 }
 
+<!-- 🔽 Reemplaza solo desde la función drawStaff hasta midiToStaffY -->
 // Dibujar las líneas del pentagrama
 function drawStaff() {
   if(!staffCtx) return;
@@ -351,7 +352,7 @@ function drawStaff() {
   }
 
   // Pentagrama inferior (clave de fa)
-  const bottomY = 140;
+  const bottomY = 120;
   for(let i=0;i<5;i++){
     const y = bottomY + i*lineGap;
     ctx.beginPath();
@@ -361,95 +362,68 @@ function drawStaff() {
   }
 
   // Claves
-  ctx.fillText("𝄞", 10, topY+25);
-  ctx.fillText("𝄢", 10, bottomY+25);
+  ctx.fillText("𝄞", 10, topY+25);   // clave de sol
+  ctx.fillText("𝄢", 10, bottomY+25); // clave de fa
 }
 
 // Calcula la posición Y de una nota en el pentagrama
 function midiToStaffY(midi) {
-  const lineGap = 12;         // separación entre líneas
-  const middleC = 60;         // Do4
-  const delta = midi - middleC;
+  const step = 6; // cada paso diatónico equivale a 6px
 
-  // posición del Do4 en clave de sol: línea adicional inferior
-  const trebleMiddleCY = 40 + 5 * lineGap; 
+  // referencia en clave de sol: G4 en la segunda línea
+  const solRefMidi = 67; 
+  const solRefY = 40 + (4-1)*12; // línea 2 = topY + lineGap*1
 
-  // posición del Do4 en clave de fa: línea adicional superior
-  const bassMiddleCY = 140 - lineGap;
-
-  // Si la nota es >= Do4, usamos clave de sol, si es más grave, clave de fa
-  const referenceY = (midi >= middleC) ? trebleMiddleCY : bassMiddleCY;
-
-  // cada nota (C-D-E-F-G-A-B) ocupa medio espacio (línea/espacio)
-  const pixelsPerStep = lineGap / 2;
-
-  return referenceY - delta * pixelsPerStep;
-  }
-
-  // Clave de sol (G4 en segunda línea)
-  const solRefMidi = 67;
-  const solRefY = 40 + 3*12;
-
-  // Clave de fa (F3 en cuarta línea)
+  // referencia en clave de fa: F3 en la cuarta línea
   const faRefMidi = 53;
-  const faRefY = 140 + 3*12;
+  const faRefY = 120 + (3*12);
 
   let referenceMidi, referenceY;
-  if(midi >= 60) {
+  if(midi >= 60) { // de C4 hacia arriba → clave de sol
     referenceMidi = solRefMidi;
     referenceY = solRefY;
-  } else {
+  } else {         // de B3 hacia abajo → clave de fa
     referenceMidi = faRefMidi;
     referenceY = faRefY;
   }
 
-  const refName = midiToNoteName(referenceMidi)[0];
-  const refOct = parseInt(midiToNoteName(referenceMidi).slice(-1));
+  // diferencia en semitonos con respecto a la nota de referencia
+  const delta = midi - referenceMidi;
+  // cada línea/espacio = 1 nota diatónica = aprox 1.5 semitonos → 6px
+  return referenceY - delta * (step * 7 / 12);
+  }
 
-  const currentIndex = diatonicIndex(letter, octave);
-  const refIndex = diatonicIndex(refName, refOct);
-
-  const delta = currentIndex - refIndex;
-  return referenceY - delta*step;
-}
-
-// Dibuja una nota en el pentagrama
 // Dibuja una nota en el pentagrama
 function drawNoteOnStaff(midi) {
-  if (!staffCtx) return;
+  if(!staffCtx) return;
   drawStaff();
   const ctx = staffCtx;
 
   const x = 140;
   const y = midiToStaffY(midi);
 
-  // --- Línea auxiliar fija para Do4 (C4, MIDI 60) ---
-  if (midi === 60) {
-    ctx.beginPath();
-    ctx.moveTo(x - 14, y);
-    ctx.lineTo(x + 14, y);
-    ctx.stroke();
-  }
-
   // cabeza de la nota
   ctx.fillStyle = '#000';
   ctx.beginPath();
-  ctx.ellipse(x, y, 9, 6, Math.PI * 0.1, 0, Math.PI * 2);
+  ctx.ellipse(x, y, 9, 6, Math.PI*0.1, 0, Math.PI*2);
   ctx.fill();
 
-  // plica
-  if (midi >= 60) {
+  // alteraciones ♯ y ♭
+  const noteName = midiToNoteName(midi);
+  if(noteName.includes("#")) ctx.fillText("♯", x-18, y+5);
+  if(noteName.includes("b")) ctx.fillText("♭", x-18, y+5);
+
+  // línea adicional si queda fuera del pentagrama
+  const topLineY = 40;
+  const bottomLineY = 140 + 4*12;
+  if (y < topLineY - 6 || y > bottomLineY + 6) {
     ctx.beginPath();
-    ctx.moveTo(x + 9, y);
-    ctx.lineTo(x + 9, y - 35);
-    ctx.stroke();
-  } else {
-    ctx.beginPath();
-    ctx.moveTo(x - 9, y);
-    ctx.lineTo(x - 9, y + 35);
+    ctx.moveTo(x-12, y);
+    ctx.lineTo(x+12, y);
     ctx.stroke();
   }
   }
+
 // Dibuja el pentagrama vacío al inicio
 drawStaff();
 // Tocar una nota
@@ -717,4 +691,4 @@ resetBtn.addEventListener('click', ()=> {
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
 </script>
 </body>
-                                                                       </html>
+                                                           </html>
