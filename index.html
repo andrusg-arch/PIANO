@@ -727,7 +727,28 @@ clearEarButtons();
   
 // pointer events
 let sustainOn = false;
-sustainBtn.addEventListener('click', ()=> { sustainOn = !sustainOn; sustainBtn.textContent = 'Sustain: ' + (sustainOn ? 'on' : 'off'); sustainBtn.classList.toggle('primary', sustainOn); if(!sustainOn) releaseAllHeld(); });
+
+sustainBtn.addEventListener('click', ()=> { 
+  sustainOn = !sustainOn; 
+  sustainBtn.textContent = 'Sustain: ' + (sustainOn ? 'on' : 'off'); 
+  sustainBtn.classList.toggle('primary', sustainOn); 
+
+  // Si lo apagamos, liberar todas las notas que estaban retenidas
+  if (!sustainOn) {
+    activeVoices.forEach((v, idx) => {
+      if (v.released) {
+        const now = audioCtx.currentTime;
+        try {
+          v.gain.gain.cancelScheduledValues(now);
+          v.gain.gain.linearRampToValueAtTime(0.0001, now + v.release);
+          v.src.stop(now + v.release + 0.05);
+        } catch(e) {}
+        activeVoices.delete(idx);
+        markKey(idx, false);
+      }
+    });
+  }
+});
 
 function bindPointers(){
   const allKeys = keyboardEl.querySelectorAll('.white, .black');
