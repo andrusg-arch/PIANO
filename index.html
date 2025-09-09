@@ -534,44 +534,35 @@ function noteOn(idx, velocity = 1) {
 function noteOff(idx) {
   const midiValue = notes[idx] ? notes[idx].midi : null;
 
-  // 1) QUITAR LA FIGURA DEL PENTAGRAMA INMEDIATAMENTE al soltar
+  // quitar nota del pentagrama inmediatamente
   if (midiValue !== null) {
     activeStaffNotes = activeStaffNotes.filter(m => m !== midiValue);
     drawActiveStaffNotes();
   }
 
-  // 2) Conseguir la voz (si existe) usando la misma clave numérica idx
   const v = activeVoices.get(idx);
   if (!v) {
-    // no había voz activa (por ejemplo sample no cargado). Solo desmarcamos la tecla.
     markKey(idx, false);
     return;
   }
 
-  // 3) Si hay sustain y la voz aún no fue marcada como 'released', no la detengas ahora (audio sigue),
-  //    pero la figura ya fue retirada visualmente.
+  const now = audioCtx.currentTime;
+
   if (sustainOn) {
-  v.released = true; // dejar que el release se haga cuando se apague sustain
-  markKey(idx, false);
-  return;
+    // si sustain está activo, solo marcar como released (se detendrá al apagar sustain)
+    v.released = true;
+    markKey(idx, false);
+    return;
   }
 
-  // 4) Si no hay sustain (o ya está marcada released), hacemos fade out y paramos la fuente
-  const now = audioCtx.currentTime;
+  // Si sustain está apagado → cortar la nota inmediatamente
   try {
     v.gain.gain.cancelScheduledValues(now);
-    v.gain.gain.linearRampToValueAtTime(0.0001, now + v.release);
-    try { v.src.stop(now + v.release + 0.05); } catch(e) {}
-  } catch(e) {
-    // si algo falla con la rampa/stop, intentamos forzar stop
-    try { v.src.stop(); } catch(_) {}
-  }
+    v.gain.gain.setValueAtTime(0.0001, now); // corte inmediato
+    try { v.src.stop(now); } catch(e) {}
+  } catch(e) {}
 
-  // borramos el registro una vez terminado el release (para liberar memoria)
-  setTimeout(() => {
-    activeVoices.delete(idx);
-  }, (v.release + 0.12) * 1000);
-
+  activeVoices.delete(idx);
   markKey(idx, false);
   }
 
