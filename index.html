@@ -83,7 +83,16 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
     </div>
 
     <div class="controls" role="region" aria-label="Controles">
-      <div class="control-group"><label class="small">Voz</label><select id="voiceSelect"><option value="piano">Grand-Piano</option></select></div>
+      <div class="control-group"><label class="small">Voz</label><div class="control-group">
+  <label class="small">Voz</label>
+  <select id="voiceSelect">
+    <option value="piano" selected>Grand Piano (samples)</option>
+    <option value="organ">Órgano (sintético)</option>
+    <option value="synth">Synth Brillante (saw)</option>
+    <option value="soft">Synth Suave (triangle)</option>
+    <option value="pad">Pad (square, ataque suave)</option>
+  </select>
+      </div></div>
       <div class="control-group"><label class="small">Volumen</label><input id="masterVol" type="range" min="0" max="1" step="0.01" value="0.88"></div>
       <div class="control-group"><label class="small">Attack</label><input id="attack" type="range" min="0.001" max="0.5" step="0.001" value="0.008"></div>
       <div class="control-group"><label class="small">Release</label><input id="release" type="range" min="0.02" max="2.0" step="0.01" value="0.18"></div>
@@ -440,56 +449,101 @@ if (midi === 60) {
 
 // Dibuja el pentagrama vacío al inicio
 drawStaff();
-// Tocar una nota
 function noteOn(idx, velocity=1){
   const n = notes[idx];
   if(!n) return;
 
+  const now = audioCtx.currentTime;
+  const selectedVoice = voiceSelect.value;
+
+  // --- 1) Siempre: Grand Piano (samples) si está cargado ---
   const sampleKey = getSampleForNote(n.name);
   const buffer = sampleMap[sampleKey];
-  if(!buffer) {
-    console.warn("⚠️ Samples aún no cargados");
-    return;
+  if (buffer) {
+    const sampleFreq = notes.find(x => x.name === sampleKey).freq;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = n.freq / sampleFreq;
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(velocity, now);
+
+    src.connect(gain).connect(masterGain);
+    src.start(now);
+
+    const keyPiano = String(idx) + "_piano";
+    activeVoices.set(keyPiano, { src, gain, release: parseFloat(releaseEl.value), released:false });
   }
 
-  const sampleFreq = notes.find(x => x.name === sampleKey).freq;
+  // --- 2) Voz extra sintética (si se seleccionó distinta de piano) ---
+  if (selectedVoice !== "piano") {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
 
-  const src = audioCtx.createBufferSource();
-  src.buffer = buffer;
-  src.playbackRate.value = n.freq / sampleFreq;
+    // elegir tipo de onda por voz
+    if (selectedVoice === "organ") osc.type = "sine";
+    else if (selectedVoice === "synth") osc.type = "sawtooth";
+    else if (selectedVoice === "soft") osc.type = "triangle";
+    else if (selectedVoice === "pad") osc.type = "square";
+    else osc.type = "sine";
 
-  const gain = audioCtx.createGain();
-  const now = audioCtx.currentTime;
-  gain.gain.setValueAtTime(velocity, now);
+    osc.frequency.setValueAtTime(n.freq, now);
 
-  src.connect(gain).connect(masterGain);
-  src.start(now);
+    // ADSR básico: usamos el slider de Attack y Release existentes
+    const atk = Math.max(0.001, parseFloat(attackEl.value));
+    const rel = Math.max(0.01, parseFloat(releaseEl.value));
 
-  // guardar en activeVoices
-  activeVoices.set(idx, { src, gain, release: parseFloat(releaseEl.value), released:false });
+    g.gain.setValueAtTime(0.0001, now);
+    // subida rápida al valor de velocity
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, velocity), now + atk);
 
+    osc.connect(g).connect(masterGain);
+    osc.start(now);
+
+    const keyOsc = String(idx) + "_osc";
+    activeVoices.set(keyOsc, { src: osc, gain: g, release: rel, released:false });
+  }
+
+  // Visual + pentagrama
   markKey(idx, true);
-
-  // mostrar en el pentagrama (usa el número MIDI de la nota)
   drawNoteOnStaff(n.midi);
   }
 
 function noteOff(idx){
-  const v = activeVoices.get(idx);
-  if(!v) return;
-
-  if(sustainOn && !v.released){
-    v.released = true; // se queda sonando hasta que quites sustain
-    return;
-  }
-
   const now = audioCtx.currentTime;
-  v.gain.gain.linearRampToValueAtTime(0.0001, now + v.release);
-  try { v.src.stop(now + v.release + 0.05); } catch(e){}
-  setTimeout(()=> activeVoices.delete(idx), (v.release+0.1)*1000);
+  const prefix = String(idx) + "_";
 
-  markKey(idx,false);
-}
+  // recopilamos claves a detener (para no modificar Map mientras iteramos)
+  const keysToStop = [];
+  activeVoices.forEach((v, key) => {
+    if (String(key).startsWith(prefix)) keysToStop.push(key);
+  });
+
+  keysToStop.forEach(key => {
+    const v = activeVoices.get(key);
+    if (!v) return;
+
+    // si sustain está activado, marcamos released y dejamos sonando
+    if (sustainOn && !v.released) {
+      v.released = true;
+      return;
+    }
+
+    // rampa de salida usando release guardado o el slider
+    const rel = (typeof v.release === 'number') ? v.release : Math.max(0.01, parseFloat(releaseEl.value));
+    try {
+      v.gain.gain.cancelScheduledValues(now);
+      v.gain.gain.linearRampToValueAtTime(0.0001, now + rel);
+      // parar la fuente después de la release
+      v.src.stop(now + rel + 0.05);
+    } catch(e) {
+      // ignore
+    }
+    setTimeout(() => activeVoices.delete(key), (rel + 0.15) * 1000);
+  });
+
+  markKey(idx, false);
+  }
 
 /* -------------------- EAR TRAINER -------------------- */
 /* Asegura markKey si no existe (fallback seguro) */
@@ -694,11 +748,22 @@ window.addEventListener('keyup', (e)=> {
 
 // reset
 resetBtn.addEventListener('click', ()=> {
-  activeVoices.forEach((v, idx)=> {
-    try{ v.nodes.oscA && v.nodes.oscA.stop(); v.nodes.oscB && v.nodes.oscB.stop(); }catch(e){}
-    activeVoices.delete(idx);
-    markKey(idx,false);
+  const now = audioCtx.currentTime;
+  activeVoices.forEach((v, key) => {
+    try {
+      const rel = (typeof v.release === 'number') ? v.release : 0.05;
+      v.gain.gain.cancelScheduledValues(now);
+      v.gain.gain.linearRampToValueAtTime(0.0001, now + rel);
+      v.src.stop(now + rel + 0.05);
+    } catch(e){}
   });
+
+  setTimeout(()=>{
+    activeVoices.clear();
+    // limpiar visual
+    const all = keyboardEl.querySelectorAll('.pressed');
+    all.forEach(el => el.classList.remove('pressed'));
+  }, 300);
 });
 
 // finalized
