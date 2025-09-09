@@ -456,31 +456,32 @@ function noteOn(idx, velocity=1){
   const now = audioCtx.currentTime;
   const selectedVoice = voiceSelect.value;
 
-  // --- 1) Siempre: Grand Piano (samples) si está cargado ---
-  const sampleKey = getSampleForNote(n.name);
-  const buffer = sampleMap[sampleKey];
-  if (buffer) {
-    const sampleFreq = notes.find(x => x.name === sampleKey).freq;
-    const src = audioCtx.createBufferSource();
-    src.buffer = buffer;
-    src.playbackRate.value = n.freq / sampleFreq;
+  // --- Opción 1: Grand Piano (samples) ---
+  if (selectedVoice === "piano") {
+    const sampleKey = getSampleForNote(n.name);
+    const buffer = sampleMap[sampleKey];
+    if (buffer) {
+      const sampleFreq = notes.find(x => x.name === sampleKey).freq;
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+      src.playbackRate.value = n.freq / sampleFreq;
 
-    const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(velocity, now);
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(velocity, now);
 
-    src.connect(gain).connect(masterGain);
-    src.start(now);
+      src.connect(gain).connect(masterGain);
+      src.start(now);
 
-    const keyPiano = String(idx) + "_piano";
-    activeVoices.set(keyPiano, { src, gain, release: parseFloat(releaseEl.value), released:false });
+      const keyPiano = String(idx) + "_piano";
+      activeVoices.set(keyPiano, { src, gain, release: parseFloat(releaseEl.value), released:false });
+    }
   }
 
-  // --- 2) Voz extra sintética (si se seleccionó distinta de piano) ---
-  if (selectedVoice !== "piano") {
+  // --- Opción 2: Voces sintéticas ---
+  else {
     const osc = audioCtx.createOscillator();
     const g = audioCtx.createGain();
 
-    // elegir tipo de onda por voz
     if (selectedVoice === "organ") osc.type = "sine";
     else if (selectedVoice === "synth") osc.type = "sawtooth";
     else if (selectedVoice === "soft") osc.type = "triangle";
@@ -489,12 +490,11 @@ function noteOn(idx, velocity=1){
 
     osc.frequency.setValueAtTime(n.freq, now);
 
-    // ADSR básico: usamos el slider de Attack y Release existentes
+    // ADSR básico
     const atk = Math.max(0.001, parseFloat(attackEl.value));
     const rel = Math.max(0.01, parseFloat(releaseEl.value));
 
     g.gain.setValueAtTime(0.0001, now);
-    // subida rápida al valor de velocity
     g.gain.exponentialRampToValueAtTime(Math.max(0.0001, velocity), now + atk);
 
     osc.connect(g).connect(masterGain);
