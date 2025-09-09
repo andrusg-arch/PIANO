@@ -371,12 +371,12 @@ function midiToStaffY(midi) {
   const step = 6; // cada paso diatónico equivale a 6px
 
   // referencia en clave de sol: G4 en la segunda línea
-  const solRefMidi = 67; 
-  const solRefY = 40 + (4-1)*12; // línea 2 = topY + lineGap*1
+const solRefMidi = 67; 
+const solRefY = 40 + (1*12); // línea 2 = topY + lineGap*1
 
-  // referencia en clave de fa: F3 en la cuarta línea
-  const faRefMidi = 53;
-  const faRefY = 120 + (3*12);
+// referencia en clave de fa: F3 en la cuarta línea (correcto en clave de fa)
+const faRefMidi = 53;
+const faRefY = 120 + (3*12); // línea 4 = bottomY + lineGap*3
 
   let referenceMidi, referenceY;
   if(midi >= 60) { // de C4 hacia arriba → clave de sol
@@ -413,14 +413,15 @@ function drawNoteOnStaff(midi) {
   if(noteName.includes("#")) ctx.fillText("♯", x-18, y+5);
   if(noteName.includes("b")) ctx.fillText("♭", x-18, y+5);
 
-  // línea adicional si queda fuera del pentagrama
-  const topLineY = 40;
-  const bottomLineY = 140 + 4*12;
-  if (y < topLineY - 6 || y > bottomLineY + 6) {
-    ctx.beginPath();
-    ctx.moveTo(x-12, y);
-    ctx.lineTo(x+12, y);
-    ctx.stroke();
+  // líneas adicionales si queda fuera del rango de 5 líneas
+const topLineY = 40;
+const bottomLineY = 120 + 4*12;
+
+if (y <= topLineY || y >= bottomLineY) {
+  ctx.beginPath();
+  ctx.moveTo(x-12, y);
+  ctx.lineTo(x+12, y);
+  ctx.stroke();
   }
   }
 
