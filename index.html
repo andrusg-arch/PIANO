@@ -56,7 +56,13 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
 .ear-controls .counters { color:var(--muted); font-size:13px; margin-left:8px; }
 .ear-keys { display:flex; flex-wrap:wrap; gap:6px; }
 .ear-btn { min-width:44px; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:transparent; cursor:pointer; font-weight:700; }
-.ear-btn.correct { background:#22c55e; color:#012; border-color:rgba(0,0,0,0.12); }
+.interval-btn {
+  min-width:44px; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:transparent; cursor:pointer; font-weight:700;
+}
+.interval-btn.correct { background:#22c55e; color:#012; border-color:rgba(0,0,0,0.12); }
+.interval-btn.wrong { background:#ef4444; color:#fff; border-color:rgba(0,0,0,0.12); }
+@media (max-width:560px){ .interval-btn{ min-width:38px; padding:6px 8px } }
+  .ear-btn.correct { background:#22c55e; color:#012; border-color:rgba(0,0,0,0.12); }
 .ear-btn.wrong { background:#ef4444; color:#fff; border-color:rgba(0,0,0,0.12); }
 .ear-actions { margin-left:auto; display:flex; gap:8px; }
 @media (max-width:560px){ .ear-btn{ min-width:38px; padding:6px 8px } }
@@ -94,7 +100,9 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
   </select>
       </div></div>
       <div class="control-group"><label class="small">Volumen</label><input id="masterVol" type="range" min="0" max="1" step="0.01" value="0.88"></div>
-      
+      <div class="control-group"><label class="small">Attack</label><input id="attack" type="range" min="0.001" max="0.5" step="0.001" value="0.008"></div>
+      <div class="control-group"><label class="small">Release</label><input id="release" type="range" min="0.02" max="2.0" step="0.01" value="0.18"></div>
+      <div class="control-group"><label class="small">Reverb</label><input id="reverb" type="range" min="0" max="0.8" step="0.01" value="0.12"></div>
       <div class="control-group">
   <label class="small">Zoom</label>
   <input id="zoomRange" type="range" min="0.5" max="2" step="0.1" value="1">
@@ -104,37 +112,73 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
 <!-- Pentagrama (pequeño, no molesta) -->
 <canvas id="staffCanvas" width="520" height="180" style="display:block;margin:8px auto 12px;max-width:520px;width:100%;height:auto;border-radius:8px;"></canvas>
     <!-- EAR TRAINER (desplegable) -->
-<div class="ear-trainer-wrap">
-  <button id="toggleEarBtn" aria-expanded="false">Ear Trainer ▸</button>
-  <div id="earTrainerPanel" aria-hidden="true">
-    <div class="ear-controls">
-      <div style="display:flex;gap:8px;align-items:center">
-        <button id="playTargetBtn" class="ear-action">🔊 Play</button>
-        <button id="repeatBtn" class="ear-action">Repetir</button>
-        <button id="nextBtn" class="ear-action">Siguiente</button>
+<!-- EAR TRAINER (desplegable) -->
+<div class="ear-trainer-wrap" style="display:flex;gap:8px;align-items:flex-start;">
+  <div style="flex:1">
+    <button id="toggleEarBtn" aria-expanded="false">Ear Trainer ▸</button>
+    <div id="earTrainerPanel" aria-hidden="true">
+      <div class="ear-controls">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="playTargetBtn" class="ear-action">🔊 Play</button>
+          <button id="repeatBtn" class="ear-action">Repetir</button>
+          <button id="nextBtn" class="ear-action">Siguiente</button>
+        </div>
+        <div class="ear-actions">
+          <div class="counters">Correctas: <strong id="correctCount">0</strong> &nbsp;|&nbsp; Incorrectas: <strong id="wrongCount">0</strong></div>
+        </div>
       </div>
-      <div class="ear-actions">
-        <div class="counters">Correctas: <strong id="correctCount">0</strong> &nbsp;|&nbsp; Incorrectas: <strong id="wrongCount">0</strong></div>
+
+      <div class="ear-keys" role="group" aria-label="Opciones de nota">
+        <button class="ear-btn" data-note="C">C</button>
+        <button class="ear-btn" data-note="C#">C♯/D♭</button>
+        <button class="ear-btn" data-note="D">D</button>
+        <button class="ear-btn" data-note="D#">D♯/E♭</button>
+        <button class="ear-btn" data-note="E">E</button>
+        <button class="ear-btn" data-note="F">F</button>
+        <button class="ear-btn" data-note="F#">F♯/G♭</button>
+        <button class="ear-btn" data-note="G">G</button>
+        <button class="ear-btn" data-note="G#">G♯/A♭</button>
+        <button class="ear-btn" data-note="A">A</button>
+        <button class="ear-btn" data-note="A#">A♯/B♭</button>
+        <button class="ear-btn" data-note="B">B</button>
       </div>
     </div>
-
-<div class="ear-keys" role="group" aria-label="Opciones de nota">
-  <button class="ear-btn" data-note="C">C</button>
-  <button class="ear-btn" data-note="C#">C♯/D♭</button>
-  <button class="ear-btn" data-note="D">D</button>
-  <button class="ear-btn" data-note="D#">D♯/E♭</button>
-  <button class="ear-btn" data-note="E">E</button>
-  <button class="ear-btn" data-note="F">F</button>
-  <button class="ear-btn" data-note="F#">F♯/G♭</button>
-  <button class="ear-btn" data-note="G">G</button>
-  <button class="ear-btn" data-note="G#">G♯/A♭</button>
-  <button class="ear-btn" data-note="A">A</button>
-  <button class="ear-btn" data-note="A#">A♯/B♭</button>
-  <button class="ear-btn" data-note="B">B</button>
-</div>
   </div>
-</div>
-<!-- /EAR TRAINER -->
+
+  <!-- INTERVAL TRAINER al lado -->
+  <div style="flex:1">
+    <button id="toggleIntervalBtn" aria-expanded="false">Interval Trainer ▸</button>
+    <div id="intervalTrainerPanel" aria-hidden="true">
+      <div class="ear-controls">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="playIntervalBtn" class="ear-action">🔊 Play</button>
+          <button id="repeatIntervalBtn" class="ear-action">Repetir</button>
+          <button id="nextIntervalBtn" class="ear-action">Siguiente</button>
+        </div>
+        <div class="ear-actions">
+          <div class="counters">Correctas: <strong id="intervalCorrectCount">0</strong> &nbsp;|&nbsp; Incorrectas: <strong id="intervalWrongCount">0</strong></div>
+        </div>
+      </div>
+
+      <div class="ear-keys" role="group" aria-label="Opciones de intervalo">
+        <button class="ear-btn" data-interval="unison">Unísono</button>
+        <button class="ear-btn" data-interval="minor2">2m</button>
+        <button class="ear-btn" data-interval="major2">2M</button>
+        <button class="ear-btn" data-interval="minor3">3m</button>
+        <button class="ear-btn" data-interval="major3">3M</button>
+        <button class="ear-btn" data-interval="perfect4">4P</button>
+        <button class="ear-btn" data-interval="tritone">TT</button>
+        <button class="ear-btn" data-interval="perfect5">5P</button>
+        <button class="ear-btn" data-interval="minor6">6m</button>
+        <button class="ear-btn" data-interval="major6">6M</button>
+        <button class="ear-btn" data-interval="minor7">7m</button>
+        <button class="ear-btn" data-interval="major7">7M</button>
+        <button class="ear-btn" data-interval="octave">8P</button>
+      </div>
+    </div>
+  </div>
+  </div>
+<!-- /INTERVAL TRAINER -->
     <div class="keyboard-wrap" role="application" aria-label="Piano">
       <div id="keyboard" class="keyboard" tabindex="0" aria-label="Piano keyboard">
         <div id="whiteContainer" class="white-keys" aria-hidden="false"></div>
@@ -603,7 +647,16 @@ toggleEarBtn.addEventListener('click', ()=>{
   toggleEarBtn.setAttribute('aria-expanded', !visible);
   earPanel.setAttribute('aria-hidden', visible);
 });
+const toggleIntervalBtn = document.getElementById('toggleIntervalBtn');
+const intervalPanel = document.getElementById('intervalTrainerPanel');
 
+toggleIntervalBtn.addEventListener('click', ()=>{
+  const visible = intervalPanel.style.display === 'block';
+  intervalPanel.style.display = visible ? 'none' : 'block';
+  toggleIntervalBtn.textContent = visible ? 'Interval Trainer ▸' : 'Interval Trainer ▾';
+  toggleIntervalBtn.setAttribute('aria-expanded', !visible);
+  intervalPanel.setAttribute('aria-hidden', visible);
+});
 /* util: limpiar estados visuales de botones */
 function clearEarButtons(){
   earButtons.forEach(b => { b.classList.remove('correct','wrong'); b.disabled = false; });
@@ -727,7 +780,46 @@ clearEarButtons();
 // pointer events
 let sustainOn = false;
 sustainBtn.addEventListener('click', ()=> { sustainOn = !sustainOn; sustainBtn.textContent = 'Sustain: ' + (sustainOn ? 'on' : 'off'); sustainBtn.classList.toggle('primary', sustainOn); if(!sustainOn) releaseAllHeld(); });
+const intervalButtons = Array.from(document.querySelectorAll('.interval-btn'));
+let intervalTarget = null;
 
+function pickRandomInterval() {
+  const rootIdx = Math.floor(Math.random() * notes.length);
+  const semitone = Math.floor(Math.random() * 13); // 0 a 12 semitonos
+  intervalTarget = { rootIdx, semitone };
+
+  // reproducir el intervalo: primero la nota raíz, luego la nota destino
+  playPreview(rootIdx, 0.6);
+  const targetIdx = Math.min(rootIdx + semitone, notes.length-1);
+  setTimeout(()=> playPreview(targetIdx, 0.6), 650);
+}
+
+function handleIntervalGuess(semitone, buttonEl) {
+  if(!intervalTarget) return;
+  intervalButtons.forEach(b=> b.disabled = true);
+
+  if(semitone == intervalTarget.semitone) {
+    buttonEl.classList.add('correct');
+  } else {
+    buttonEl.classList.add('wrong');
+    const correctBtn = intervalButtons.find(b => parseInt(b.dataset.interval) === intervalTarget.semitone);
+    if(correctBtn) correctBtn.classList.add('correct');
+  }
+
+  setTimeout(()=>{
+    intervalButtons.forEach(b=> b.disabled = false);
+    intervalTarget = null;
+  }, 700);
+}
+
+intervalButtons.forEach(btn => {
+  btn.addEventListener('click', ()=>{
+    handleIntervalGuess(parseInt(btn.dataset.interval), btn);
+  });
+});
+  const playIntervalBtn = document.getElementById('playIntervalBtn');
+playIntervalBtn.addEventListener('click', pickRandomInterval);
+  
 function bindPointers(){
   const allKeys = keyboardEl.querySelectorAll('.white, .black');
   allKeys.forEach(k=>{
@@ -799,4 +891,4 @@ resetBtn.addEventListener('click', ()=> {
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
 </script>
 </body>
-          </html>
+                                                                      </html>
