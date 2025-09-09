@@ -414,43 +414,42 @@ function midiToStaffY(midi) {
 }
 
 // Dibuja una nota en el pentagrama
+// Dibuja una nota en el pentagrama
 function drawNoteOnStaff(midi) {
-  if(!staffCtx) return;
+  if (!staffCtx) return;
   drawStaff();
   const ctx = staffCtx;
 
   const x = 140;
   const y = midiToStaffY(midi);
 
+  // --- Línea auxiliar fija para Do4 (C4, MIDI 60) ---
   if (midi === 60) {
-  // línea adicional para el Do4
-  ctx.beginPath();
-  ctx.moveTo(x - 10, y);
-  ctx.lineTo(x + 10, y);
-  ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - 14, y);
+    ctx.lineTo(x + 14, y);
+    ctx.stroke();
   }
+
   // cabeza de la nota
   ctx.fillStyle = '#000';
   ctx.beginPath();
-  ctx.ellipse(x, y, 9, 6, Math.PI*0.1, 0, Math.PI*2);
+  ctx.ellipse(x, y, 9, 6, Math.PI * 0.1, 0, Math.PI * 2);
   ctx.fill();
 
-  // alteraciones ♯ y ♭
-  const noteName = midiToNoteName(midi);
-  if(noteName.includes("#")) ctx.fillText("♯", x-18, y+5);
-  if(noteName.includes("b")) ctx.fillText("♭", x-18, y+5);
-
-  // línea adicional si queda fuera del pentagrama
-  const topLineY = 40;
-  const bottomLineY = 140 + 4*12;
-  if (y < topLineY - 6 || y > bottomLineY + 6) {
+  // plica
+  if (midi >= 60) {
     ctx.beginPath();
-    ctx.moveTo(x-12, y);
-    ctx.lineTo(x+12, y);
+    ctx.moveTo(x + 9, y);
+    ctx.lineTo(x + 9, y - 35);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(x - 9, y);
+    ctx.lineTo(x - 9, y + 35);
     ctx.stroke();
   }
   }
-
 // Dibuja el pentagrama vacío al inicio
 drawStaff();
 // Tocar una nota
