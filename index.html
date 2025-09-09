@@ -613,44 +613,46 @@ function clearEarButtons(){
 }
 
 /* reproducir nota como preview sin tocar activeVoices (no interactúa con sustain) */
-function playPreview(idx, duration = 4.0){
+function playPreview(idx){
   const n = notes[idx];
   if(!n) return;
-  const sampleKey = getSampleForNote(n.name);
+
   const now = audioCtx.currentTime;
+  const sampleKey = getSampleForNote(n.name);
 
-  // marcar visual breve
-  markKey(idx, true);
+  let src, g;
 
-  if (sampleKey && sampleMap[sampleKey]) {
-    const buffer = sampleMap[sampleKey];
+  if(sampleMap[sampleKey]){
+    // sample
+    src = audioCtx.createBufferSource();
+    src.buffer = sampleMap[sampleKey];
     const sampleFreq = notes.find(x => x.name === sampleKey).freq;
-    const src = audioCtx.createBufferSource();
-    src.buffer = buffer;
     src.playbackRate.value = n.freq / sampleFreq;
-    const g = audioCtx.createGain();
-    g.gain.setValueAtTime(0.0001, now);
-    g.gain.exponentialRampToValueAtTime(1.0, now + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+    g = audioCtx.createGain();
+    g.gain.setValueAtTime(1.0, now);
+
     src.connect(g).connect(masterGain);
     src.start(now);
-    src.stop(now + duration + 0.02);
-    setTimeout(()=> markKey(idx, false), 220);
+
+    // Guardamos la voz para que siga sonando
+    activeVoices.set(`ear_${idx}`, { src, gain: g, release: 0.3, released: false });
   } else {
     // fallback oscillator
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(n.freq, now);
-    g.gain.setValueAtTime(0.0001, now);
-    g.gain.exponentialRampToValueAtTime(0.8, now + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-    osc.connect(g).connect(masterGain);
-    osc.start(now);
-    osc.stop(now + duration + 0.02);
-    setTimeout(()=> markKey(idx, false), 220);
+    src = audioCtx.createOscillator();
+    g = audioCtx.createGain();
+    src.type = 'sine';
+    src.frequency.setValueAtTime(n.freq, now);
+    g.gain.setValueAtTime(1.0, now);
+    src.connect(g).connect(masterGain);
+    src.start(now);
+
+    activeVoices.set(`ear_${idx}`, { src, gain: g, release: 0.3, released: false });
   }
-}
+
+  // solo visual
+  markKey(idx, true);
+  }
 
 /* elegir nota aleatoria y reproducir */
 function pickRandomTarget(){
