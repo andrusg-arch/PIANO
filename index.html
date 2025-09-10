@@ -20,7 +20,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 :root{
-  --bg:#071126; --panel:#0b2330; --muted:#9fb0bd; --accent:#00d4b4;
+  --bg:#071126; --panel:#0b2330; --muted:#9fb0bd; --piano-scale: 1.42; --accent:#00d4b4;
   --white:#fffdf6; --white-edge:#d4cec4; --black:#0b0f12;
 }
 *{box-sizing:border-box}
@@ -34,7 +34,8 @@ h1{margin:0;font-size:20px}
 select,input[type=range],button{background:transparent;border:1px solid rgba(255,255,255,0.06);color:inherit;padding:8px;border-radius:8px}
 button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
 .keyboard-wrap{background:linear-gradient(180deg,#041427,#021018);padding:12px;border-radius:12px}
-.keyboard{position:relative;width:100%;overflow-x:auto;border-radius:8px;padding:8px}
+.keyboard{position:relative;width:100%;overflow-x:auto;border-radius:8px;padding:8px;transform: scale(var(--piano-scale));
+transform-origin: top left;}
 .white-keys{display:flex;gap:0;align-items:flex-end;height:320px;position:relative}
 .white{width:64px;height:100%;background:var(--white);border-left:1px solid var(--white-edge);border-right:1px solid var(--white-edge);border-bottom:12px solid #ddd;border-radius:6px 6px 0 0;position:relative;z-index:1;display:flex;align-items:flex-end;justify-content:center;cursor:pointer}
 .white .lbl{font-size:11px;color:#222;padding:6px}
