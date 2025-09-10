@@ -665,7 +665,12 @@ toggleIntervalBtn.addEventListener('click', ()=>{
 function clearEarButtons(){
   earButtons.forEach(b => { b.classList.remove('correct','wrong'); b.disabled = false; });
 }
-
+function clearIntervalButtons(){
+  intervalButtons.forEach(b => {
+    b.classList.remove('correct','wrong');
+    b.disabled = false;
+  });
+  }
 /* reproducir nota como preview sin tocar activeVoices (no interactúa con sustain) */
 function playPreview(idx){
   const n = notes[idx];
@@ -784,52 +789,60 @@ clearEarButtons();
 // pointer events
 let sustainOn = false;
 sustainBtn.addEventListener('click', ()=> { sustainOn = !sustainOn; sustainBtn.textContent = 'Sustain: ' + (sustainOn ? 'on' : 'off'); sustainBtn.classList.toggle('primary', sustainOn); if(!sustainOn) releaseAllHeld(); });
-const intervalButtons = Array.from(document.querySelectorAll('.interval-btn'));
-let intervalTarget = null;
+// 👉 toma solo los botones del panel de Interval Trainer
+const intervalButtons = Array.from(document.querySelectorAll('#intervalTrainerPanel .ear-btn'));
+  // mapeo para convertir el nombre que tienes en HTML a semitonos (0..12)
+const intervalNameToSemitone = {
+  unison: 0, minor2: 1, major2: 2, minor3: 3, major3: 4,
+  perfect4: 5, tritone: 6, perfect5: 7, minor6: 8, major6: 9,
+  minor7: 10, major7: 11, octave: 12
+};
+let intervalTarget = null; // variable de estado (si no existe, agrégala)
 
-function pickRandomInterval() {
+function pickRandomInterval(){
+  clearIntervalButtons(); // limpia colores de la ronda anterior
+
   const rootIdx = Math.floor(Math.random() * notes.length);
-  const semitone = Math.floor(Math.random() * 13); // 0 a 12 semitonos
+  const semitone = Math.floor(Math.random() * 13); // 0..12
   intervalTarget = { rootIdx, semitone };
 
-  // reproducir el intervalo: primero la nota raíz, luego la nota destino
+  // reproducir: raíz y luego la nota destino
   playPreview(rootIdx, 0.6);
-  const targetIdx = Math.min(rootIdx + semitone, notes.length-1);
+  const targetIdx = Math.min(rootIdx + semitone, notes.length - 1);
   setTimeout(()=> playPreview(targetIdx, 0.6), 650);
-}
+  }
 
-function handleIntervalGuess(semitone, buttonEl) {
+function handleIntervalGuessByName(btn) {
   if(!intervalTarget) return;
 
+  // bloquear y limpiar clases
   intervalButtons.forEach(b => { b.disabled = true; b.classList.remove('correct','wrong'); });
 
-  const targetSemitone = intervalTarget.semitone;
-  if(semitone === targetSemitone) {
-    buttonEl.classList.add('correct');
-    // actualizar contador
+  const selectedName = btn.dataset.interval; // ej "minor3"
+  const selectedSemitone = intervalNameToSemitone[selectedName];
+
+  if(selectedSemitone === intervalTarget.semitone) {
+    btn.classList.add('correct');
     const countEl = document.getElementById('intervalCorrectCount');
-    countEl.textContent = parseInt(countEl.textContent)+1;
+    countEl.textContent = parseInt(countEl.textContent) + 1;
   } else {
-    buttonEl.classList.add('wrong');
-    const countEl = document.getElementById('intervalWrongCount');
-    countEl.textContent = parseInt(countEl.textContent)+1;
-
+    btn.classList.add('wrong');
     // marcar correcta en verde
-    const correctBtn = intervalButtons.find(b => parseInt(b.dataset.interval) === targetSemitone);
+    const correctBtn = intervalButtons.find(b => intervalNameToSemitone[b.dataset.interval] === intervalTarget.semitone);
     if(correctBtn) correctBtn.classList.add('correct');
+    const countEl = document.getElementById('intervalWrongCount');
+    countEl.textContent = parseInt(countEl.textContent) + 1;
   }
 
-  // permitir nueva acción
-  setTimeout(() => {
-    intervalButtons.forEach(b => b.disabled = false);
-  }, 700);
-  }
+  // reactivar después de un corto delay
+  setTimeout(() => { intervalButtons.forEach(b => b.disabled = false); }, 700);
+}
 
+// ligar los botones al nuevo handler
 intervalButtons.forEach(btn => {
-  btn.addEventListener('click', ()=>{
-    handleIntervalGuess(parseInt(btn.dataset.interval), btn);
-  });
+  btn.addEventListener('click', () => handleIntervalGuessByName(btn));
 });
+  
   const playIntervalBtn = document.getElementById('playIntervalBtn');
 playIntervalBtn.addEventListener('click', pickRandomInterval);
 
