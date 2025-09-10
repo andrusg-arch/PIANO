@@ -649,7 +649,11 @@ toggleEarBtn.addEventListener('click', ()=>{
 });
 const toggleIntervalBtn = document.getElementById('toggleIntervalBtn');
 const intervalPanel = document.getElementById('intervalTrainerPanel');
-
+// Inicializar Interval Trainer plegado
+intervalPanel.style.display = 'none';
+toggleIntervalBtn.textContent = 'Interval Trainer ▸';
+toggleIntervalBtn.setAttribute('aria-expanded', false);
+intervalPanel.setAttribute('aria-hidden', true);
 toggleIntervalBtn.addEventListener('click', ()=>{
   const visible = intervalPanel.style.display === 'block';
   intervalPanel.style.display = visible ? 'none' : 'block';
@@ -796,21 +800,30 @@ function pickRandomInterval() {
 
 function handleIntervalGuess(semitone, buttonEl) {
   if(!intervalTarget) return;
-  intervalButtons.forEach(b=> b.disabled = true);
 
-  if(semitone == intervalTarget.semitone) {
+  intervalButtons.forEach(b => { b.disabled = true; b.classList.remove('correct','wrong'); });
+
+  const targetSemitone = intervalTarget.semitone;
+  if(semitone === targetSemitone) {
     buttonEl.classList.add('correct');
+    // actualizar contador
+    const countEl = document.getElementById('intervalCorrectCount');
+    countEl.textContent = parseInt(countEl.textContent)+1;
   } else {
     buttonEl.classList.add('wrong');
-    const correctBtn = intervalButtons.find(b => parseInt(b.dataset.interval) === intervalTarget.semitone);
+    const countEl = document.getElementById('intervalWrongCount');
+    countEl.textContent = parseInt(countEl.textContent)+1;
+
+    // marcar correcta en verde
+    const correctBtn = intervalButtons.find(b => parseInt(b.dataset.interval) === targetSemitone);
     if(correctBtn) correctBtn.classList.add('correct');
   }
 
-  setTimeout(()=>{
-    intervalButtons.forEach(b=> b.disabled = false);
-    intervalTarget = null;
+  // permitir nueva acción
+  setTimeout(() => {
+    intervalButtons.forEach(b => b.disabled = false);
   }, 700);
-}
+  }
 
 intervalButtons.forEach(btn => {
   btn.addEventListener('click', ()=>{
@@ -819,6 +832,22 @@ intervalButtons.forEach(btn => {
 });
   const playIntervalBtn = document.getElementById('playIntervalBtn');
 playIntervalBtn.addEventListener('click', pickRandomInterval);
+
+const repeatIntervalBtn = document.getElementById('repeatIntervalBtn');
+const nextIntervalBtn = document.getElementById('nextIntervalBtn');
+
+repeatIntervalBtn.addEventListener('click', (e)=>{ e.preventDefault(); if(intervalTarget) {
+  // reproducir el intervalo actual
+  const rootIdx = intervalTarget.rootIdx;
+  const semitone = intervalTarget.semitone;
+  playPreview(rootIdx, 0.6);
+  setTimeout(()=> playPreview(Math.min(rootIdx+semitone, notes.length-1),0.6),650);
+}});
+
+nextIntervalBtn.addEventListener('click', (e)=>{
+  e.preventDefault();
+  pickRandomInterval();
+});
   
 function bindPointers(){
   const allKeys = keyboardEl.querySelectorAll('.white, .black');
