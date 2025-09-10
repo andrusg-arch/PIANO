@@ -56,9 +56,24 @@ transform-origin: top left;}
 .ear-controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
 .ear-controls .counters { color:var(--muted); font-size:13px; margin-left:8px; }
 .ear-keys { display:flex; flex-wrap:wrap; gap:6px; }
-.ear-btn { min-width:44px; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:transparent; cursor:pointer; font-weight:700; }
+.ear-btn { min-width:44px;
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid #aaa;   /* borde más notorio */
+  background:#e6e6e6;      /* 👈 gris claro sólido */
+  cursor:pointer;
+  font-weight:700;
+  color:#111;              /* texto oscuro */
+}
 .interval-btn {
-  min-width:44px; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:transparent; cursor:pointer; font-weight:700;
+  min-width:44px;
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid #aaa;   /* borde más notorio */
+  background:#e6e6e6;      /* 👈 gris claro sólido */
+  cursor:pointer;
+  font-weight:700;
+  color:#111;              /* texto oscuro */
 }
 .interval-btn.correct { background:#22c55e; color:#012; border-color:rgba(0,0,0,0.12); }
 .interval-btn.wrong { background:#ef4444; color:#fff; border-color:rgba(0,0,0,0.12); }
