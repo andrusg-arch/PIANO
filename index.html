@@ -89,20 +89,8 @@ button.primary{background:var(--accent);color:#012;border:none;font-weight:700}
     </div>
 
     <div class="controls" role="region" aria-label="Controles">
-      <div class="control-group"><label class="small">Voz</label><div class="control-group">
-  <label class="small">Voz</label>
-  <select id="voiceSelect">
-    <option value="piano" selected>Grand Piano (samples)</option>
-    <option value="organ">Órgano (sintético)</option>
-    <option value="synth">Synth Brillante (saw)</option>
-    <option value="soft">Synth Suave (triangle)</option>
-    <option value="pad">Pad (square, ataque suave)</option>
-  </select>
-      </div></div>
+      
       <div class="control-group"><label class="small">Volumen</label><input id="masterVol" type="range" min="0" max="1" step="0.01" value="0.88"></div>
-      <div class="control-group"><label class="small">Attack</label><input id="attack" type="range" min="0.001" max="0.5" step="0.001" value="0.008"></div>
-      <div class="control-group"><label class="small">Release</label><input id="release" type="range" min="0.02" max="2.0" step="0.01" value="0.18"></div>
-      <div class="control-group"><label class="small">Reverb</label><input id="reverb" type="range" min="0" max="0.8" step="0.01" value="0.12"></div>
       <div class="control-group">
   <label class="small">Zoom</label>
   <input id="zoomRange" type="range" min="0.5" max="2" step="0.1" value="1">
@@ -223,12 +211,8 @@ masterGain.connect(reverbGain);
 const whiteContainer = document.getElementById('whiteContainer');
 const blackContainer = document.getElementById('blackContainer');
 const keyboardEl = document.getElementById('keyboard');
-const voiceSelect = document.getElementById('voiceSelect');
-const attackEl = document.getElementById('attack');
-const releaseEl = document.getElementById('release');
 const masterVol = document.getElementById('masterVol');
 const sustainBtn = document.getElementById('sustainBtn');
-const reverbEl = document.getElementById('reverb');
 const resetBtn = document.getElementById('resetBtn');
 const zoomRange = document.getElementById("zoomRange");
 
@@ -237,7 +221,6 @@ zoomRange.addEventListener("input", () => {
   keyboardEl.style.transform = `scale(${scale})`;
 });
 masterVol.addEventListener('input', ()=> masterGain.gain.value = parseFloat(masterVol.value));
-reverbEl.addEventListener('input', ()=> reverbGain.gain.value = parseFloat(reverbEl.value));
 document.addEventListener('pointerdown', function resumeAudio(){ if(audioCtx.state === 'suspended') audioCtx.resume(); document.removeEventListener('pointerdown', resumeAudio); });
 // evitar menú contextual y selección por largo toque
 document.addEventListener('contextmenu', e => e.preventDefault());
@@ -517,56 +500,26 @@ function noteOn(idx, velocity = 1) {
   if (!n) return;
 
   const now = audioCtx.currentTime;
-  const selectedVoice = voiceSelect.value;
 
-  // --- Opción 1: Grand Piano (samples) ---
-  if (selectedVoice === "piano") {
-    const sampleKey = getSampleForNote(n.name);
-    const buffer = sampleMap[sampleKey];
-    if (buffer) {
-      const sampleFreq = notes.find(x => x.name === sampleKey).freq;
-      const src = audioCtx.createBufferSource();
-      src.buffer = buffer;
-      src.playbackRate.value = n.freq / sampleFreq;
+  // Siempre usar samples
+  const sampleKey = getSampleForNote(n.name);
+  const buffer = sampleMap[sampleKey];
+  if (buffer) {
+    const sampleFreq = notes.find(x => x.name === sampleKey).freq;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = n.freq / sampleFreq;
 
-      const gain = audioCtx.createGain();
-      gain.gain.setValueAtTime(velocity, now);
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(velocity, now);
 
-      src.connect(gain).connect(masterGain);
-      src.start(now);
+    src.connect(gain).connect(masterGain);
+    src.start(now);
 
-      // guardar bajo la clave numérica idx (coincide con noteOff)
-      activeVoices.set(idx, { src, gain, release: parseFloat(releaseEl.value), released: false });
-    }
-  }
-  // --- Opción 2: Voces sintéticas ---
-  else {
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-
-    if (selectedVoice === "organ") osc.type = "sine";
-    else if (selectedVoice === "synth") osc.type = "sawtooth";
-    else if (selectedVoice === "soft") osc.type = "triangle";
-    else if (selectedVoice === "pad") osc.type = "square";
-    else osc.type = "sine";
-
-    osc.frequency.setValueAtTime(n.freq, now);
-
-    // ADSR básico
-    const atk = Math.max(0.001, parseFloat(attackEl.value));
-    const rel = Math.max(0.01, parseFloat(releaseEl.value));
-
-    g.gain.setValueAtTime(0.0001, now);
-    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, velocity), now + atk);
-
-    osc.connect(g).connect(masterGain);
-    osc.start(now);
-
-    // guardar bajo la clave numérica idx
-    activeVoices.set(idx, { src: osc, gain: g, release: rel, released: false });
+    activeVoices.set(idx, { src, gain, release: 0.2, released: false });
   }
 
-  // Visual + pentagrama (añadir la nota y redibujar)
+  // Visual + pentagrama
   markKey(idx, true);
   if (!activeStaffNotes.includes(n.midi)) activeStaffNotes.push(n.midi);
   drawActiveStaffNotes();
