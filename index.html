@@ -238,7 +238,19 @@ for(let o = startOct; o < startOct + octCount; o++){
     notes.push({name,midi,freq,isSharp: semitones[i].includes('#'), semi:i});
   }
 }
-
+// --- Formateo de etiquetas visibles en el teclado ---
+// Convierte "C2" -> "C1" (decrementa 1 la octava visible) y cambia "#" por el símbolo "♯"
+function formatLabel(noteName) {
+  // noteName ejemplo: "C2" o "C#4"
+  const m = /^([A-G])(#?)(\d+)$/.exec(noteName);
+  if (!m) return noteName.replace('#','♯');
+  const base = m[1];            // letra A-G
+  const hasSharp = m[2] === '#';
+  const octave = parseInt(m[3], 10);
+  const pitch = hasSharp ? (base + '♯') : base;
+  // restar 1 a la octava para mostrar C1..B5 en vez de C2..B6
+  return pitch + (octave - 1);
+}
 // create whites
 whiteContainer.innerHTML = '';
 const whiteEls = [];
@@ -249,7 +261,7 @@ for(let i=0;i<notes.length;i++){
     w.dataset.semiIndex = i; // semitone index
     w.dataset.index = i;
     w.dataset.note = notes[i].name;
-    const lbl = document.createElement('div'); lbl.className='lbl'; lbl.textContent = notes[i].name;
+    const lbl = document.createElement('div'); lbl.className='lbl'; lbl.textContent = formatLabel(notes[i].name);
     w.appendChild(lbl);
     whiteContainer.appendChild(w);
     whiteEls.push(w);
@@ -265,7 +277,7 @@ for(let i=0;i<notes.length;i++){
     b.dataset.semiIndex = i;
     b.dataset.index = i;
     b.dataset.note = notes[i].name;
-    const lbl = document.createElement('div'); lbl.className='lbl'; lbl.textContent = notes[i].name;
+    const lbl = document.createElement('div'); lbl.className='lbl'; lbl.textContent = formatLabel(notes[i].name);
     b.appendChild(lbl);
     blackContainer.appendChild(b);
   }
@@ -886,4 +898,4 @@ resetBtn.addEventListener('click', ()=> {
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
 </script>
 </body>
-  </html>
+    </html>
