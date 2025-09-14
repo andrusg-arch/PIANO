@@ -244,7 +244,7 @@ transform-origin: top left;}
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioCtx();
 const masterGain = audioCtx.createGain();
-masterGain.gain.value = 2.0;
+masterGain.gain.value = 1.5;
 masterGain.connect(audioCtx.destination);
 
 const reverbGain = audioCtx.createGain();
