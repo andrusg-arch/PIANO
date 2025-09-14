@@ -209,6 +209,15 @@ transform-origin: top left;}
       <label for="tempo" style="font-size:14px;">Velocidad (BPM):</label>
       <input id="tempo" type="range" min="40" max="240" value="100" style="width:100%; margin:8px 0;">
       <div id="tempoValue" style="margin-bottom:10px;">100 BPM</div>
+      <!-- Selector de compás -->
+<label for="timeSignature" style="font-size:14px;">Compás:</label>
+<select id="timeSignature" style="display:inline-block; margin-left:8px;">
+  <option value="0">Libre</option>
+  <option value="2">2/4</option>
+  <option value="3">3/4</option>
+  <option value="4" selected>4/4</option>
+  <option value="6">6/8</option>
+</select>
       <button id="startStopMetronome">Start</button>
     </div>
   </div>
@@ -1078,15 +1087,37 @@ toggleMetronomeBtn.addEventListener("click", () => {
   toggleMetronomeBtn.setAttribute("aria-expanded", !isOpen);
   toggleMetronomeBtn.textContent = isOpen ? "Metronome ▸" : "Metronome ▾";
 });
-  // --- METRONOME ---
+// --- METRONOME (compases / libre) ---
 let metroRunning = false;
 let metroTimer = null;
 
 const tempoSlider = document.getElementById("tempo");
 const tempoValue = document.getElementById("tempoValue");
 const startStopBtn = document.getElementById("startStopMetronome");
+const timeSigSelect = document.getElementById("timeSignature"); // puede ser null si no lo añadiste
 
-// actualizar label de BPM
+// 0 = Libre (todos iguales). Por defecto = 4.
+let beatsPerMeasure = 4;
+let beatCount = 0;
+
+// inicializar label BPM visible (por si no estaba actualizado)
+if (tempoSlider && tempoValue) tempoValue.textContent = tempoSlider.value + " BPM";
+
+// Si existe el selector, leer valor inicial y escuchar cambios
+if (timeSigSelect) {
+  beatsPerMeasure = parseInt(timeSigSelect.value, 10) || 4;
+  timeSigSelect.addEventListener("change", () => {
+    // si el usuario elige "Libre" selecciona 0
+    beatsPerMeasure = parseInt(timeSigSelect.value, 10) || 0;
+    beatCount = 0;
+    if (metroRunning) { // reinicia para aplicar inmediatamente
+      stopMetronome();
+      startMetronome();
+    }
+  });
+}
+
+// manejar cambio de tempo (BPM)
 tempoSlider.addEventListener("input", () => {
   tempoValue.textContent = tempoSlider.value + " BPM";
   if (metroRunning) {
@@ -1095,28 +1126,39 @@ tempoSlider.addEventListener("input", () => {
   }
 });
 
-function playClick(accent=false) {
+// función que suena el click (distingue acento según compás)
+function playClick() {
+  // Si beatsPerMeasure === 0 → modo libre (sin acento)
+  const accent = (beatsPerMeasure > 0) ? (beatCount % beatsPerMeasure === 0) : false;
+
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.type = "square";
-  osc.frequency.value = accent ? 2000 : 1200; // más agudo en el primer pulso
+
+  // acento más agudo y un poco más largo
+  osc.frequency.value = accent ? 2000 : 1200;
+  const envLen = accent ? 0.08 : 0.05;
+
   gain.gain.setValueAtTime(1, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + envLen);
   osc.connect(gain).connect(masterGain);
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.06);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + envLen + 0.02);
+
+  // contar para el siguiente beat (se cuenta *después* de sonar)
+  beatCount++;
 }
 
+// start/stop del metrónomo
 function startMetronome() {
   if (metroRunning) return;
   metroRunning = true;
   startStopBtn.textContent = "Stop";
-  const interval = 60000 / parseInt(tempoSlider.value);
-  let count = 0;
-  metroTimer = setInterval(() => {
-    playClick(count % 4 === 0); // cada 4 pulsa un acento
-    count++;
-  }, interval);
+  beatCount = 0; // empezamos desde el primer tiempo
+  // reproducir primer click inmediato para marcar compás desde el inicio
+  playClick();
+  const interval = 60000 / parseInt(tempoSlider.value, 10);
+  metroTimer = setInterval(playClick, interval);
 }
 
 function stopMetronome() {
@@ -1124,8 +1166,10 @@ function stopMetronome() {
   startStopBtn.textContent = "Start";
   clearInterval(metroTimer);
   metroTimer = null;
+  beatCount = 0;
 }
 
+// ligar botón start/stop (same ID que tenías)
 startStopBtn.addEventListener("click", () => {
   if (metroRunning) stopMetronome();
   else startMetronome();
