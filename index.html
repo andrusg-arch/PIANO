@@ -197,25 +197,21 @@ transform-origin: top left;}
       <div id="tunerDetune" style="font-size:14px;">-- cents</div>
     </div>
   </div>
-  <!-- /TUNER -->
-
-  <!-- METRONOME (desplegable) -->
-  <div style="flex:1; min-width:160px;">
-    <button id="toggleMetronomeBtn" aria-expanded="false">Metronome ▸</button>
-    <div id="metronomePanel" aria-hidden="true" style="display:none; padding:8px 6px; border-radius:8px;">
-      <div style="margin-bottom:10px; font-size:14px; color:var(--muted)">
-        ⏱ Controla el tempo y activa el metrónomo.
-      </div>
-      <label for="tempo" style="font-size:14px;">Velocidad (BPM):</label>
-      <input id="tempo" type="range" min="40" max="240" value="100" style="width:100%; margin:8px 0;">
-      <div id="tempoValue" style="margin-bottom:10px;">100 BPM</div>
-      <button id="startStopMetronome">Start</button>
+ <!-- METRONOME (desplegable) -->
+<div style="flex:1">
+  <button id="toggleMetronomeBtn" aria-expanded="false">Metronome ▸</button>
+  <div id="metronomePanel" aria-hidden="true" style="display:none; padding:8px 6px; border-radius:8px;">
+    <div style="margin-bottom:10px; font-size:14px; color:var(--muted)">
+      ⏱ Controla el tempo y activa el metrónomo.
     </div>
+    <label for="tempo" style="font-size:14px;">Velocidad (BPM):</label>
+    <input id="tempo" type="range" min="40" max="240" value="100" style="width:100%; margin:8px 0;">
+    <div id="tempoValue" style="margin-bottom:10px;">100 BPM</div>
+    <button id="startStopMetronome">Start</button>
   </div>
-  <!-- /METRONOME -->
-
 </div>
-<!-- /TUNER + METRONOME -->
+<!-- /METRONOME -->
+  <!-- /TUNER -->
     <!-- /INTERVAL TRAINER -->
     <div class="keyboard-wrap" role="application" aria-label="Piano">
       <div id="keyboard" class="keyboard" tabindex="0" aria-label="Piano keyboard">
