@@ -182,7 +182,20 @@ transform-origin: top left;}
     </div>
   </div>
   </div>
-<!-- /INTERVAL TRAINER -->
+<!-- TUNER (desplegable) -->
+  <div style="flex:1">
+    <button id="toggleTunerBtn" aria-expanded="false">Tuner ▸</button>
+    <div id="tunerPanel" aria-hidden="true" style="display:none; padding:8px 6px; border-radius:8px;">
+      <div style="margin-bottom:10px; font-size:14px; color:var(--muted)">
+        🎤 Usa tu micrófono para detectar la nota que estás tocando/cantando.
+      </div>
+      <div id="tunerNote" style="font-size:28px; font-weight:bold; color:var(--accent); margin-bottom:4px;">--</div>
+      <div id="tunerFreq" style="font-size:16px; margin-bottom:6px;">-- Hz</div>
+      <div id="tunerDetune" style="font-size:14px;">-- cents</div>
+    </div>
+  </div>
+  <!-- /TUNER -->
+    <!-- /INTERVAL TRAINER -->
     <div class="keyboard-wrap" role="application" aria-label="Piano">
       <div id="keyboard" class="keyboard" tabindex="0" aria-label="Piano keyboard">
         <div id="whiteContainer" class="white-keys" aria-hidden="false"></div>
@@ -910,7 +923,131 @@ resetBtn.addEventListener('click', ()=> {
   }, 300);
 });
 
-// finalized
+/* -------------------- TUNER -------------------- */
+const toggleTunerBtn = document.getElementById('toggleTunerBtn');
+const tunerPanel = document.getElementById('tunerPanel');
+const tunerNote = document.getElementById('tunerNote');
+const tunerFreq = document.getElementById('tunerFreq');
+const tunerDetune = document.getElementById('tunerDetune');
+
+let tunerStream = null;
+let tunerSource = null;
+let tunerAnalyser = null;
+let tunerBuffer = null;
+let tunerRaf = null;
+
+// plegado/estado inicial
+tunerPanel.style.display = 'none';
+toggleTunerBtn.textContent = 'Tuner ▸';
+toggleTunerBtn.setAttribute('aria-expanded', false);
+tunerPanel.setAttribute('aria-hidden', true);
+
+toggleTunerBtn.addEventListener('click', ()=>{
+  const visible = tunerPanel.style.display === 'block';
+  if (visible) {
+    // cerrar
+    stopTuner();
+    tunerPanel.style.display = 'none';
+    toggleTunerBtn.textContent = 'Tuner ▸';
+    toggleTunerBtn.setAttribute('aria-expanded', false);
+    tunerPanel.setAttribute('aria-hidden', true);
+  } else {
+    // abrir y arrancar tuner
+    tunerPanel.style.display = 'block';
+    toggleTunerBtn.textContent = 'Tuner ▾';
+    toggleTunerBtn.setAttribute('aria-expanded', true);
+    tunerPanel.setAttribute('aria-hidden', false);
+    startTuner();
+  }
+});
+
+async function startTuner(){
+  if (tunerStream) return; // ya activo
+  try {
+    // por si el audioCtx está suspendido (política de autoplay)
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    tunerStream = stream;
+    tunerSource = audioCtx.createMediaStreamSource(stream);
+    tunerAnalyser = audioCtx.createAnalyser();
+    tunerAnalyser.fftSize = 2048; // buena precisión / latencia
+    tunerSource.connect(tunerAnalyser);
+    tunerBuffer = new Float32Array(tunerAnalyser.fftSize);
+
+    updateTuner();
+  } catch (e) {
+    console.error('No se pudo acceder al micrófono:', e);
+    tunerNote.textContent = '--';
+    tunerFreq.textContent = '--';
+    tunerDetune.textContent = '--';
+  }
+}
+
+function stopTuner(){
+  if (tunerRaf) { cancelAnimationFrame(tunerRaf); tunerRaf = null; }
+  if (tunerSource) { try{ tunerSource.disconnect(); }catch(e){} tunerSource = null; }
+  if (tunerStream) { tunerStream.getTracks().forEach(t => t.stop()); tunerStream = null; }
+  tunerAnalyser = null;
+  tunerBuffer = null;
+  tunerNote.textContent = '--';
+  tunerFreq.textContent = '--';
+  tunerDetune.textContent = '--';
+}
+
+function updateTuner(){
+  if (!tunerAnalyser) return;
+  tunerAnalyser.getFloatTimeDomainData(tunerBuffer);
+  const pitch = autoCorrelate(tunerBuffer, audioCtx.sampleRate);
+  if (pitch && pitch !== -1) {
+    const midi = freqToNote(pitch); // devuelve número MIDI (p. ej. 69 = A4)
+    const noteName = noteStrings[midi % 12];
+    tunerNote.textContent = noteName;
+    tunerFreq.textContent = pitch.toFixed(2) + ' Hz';
+    const noteFreq = noteToFrequency(midi);
+    const detune = 1200 * Math.log2(pitch / noteFreq); // en cents
+    tunerDetune.textContent = (detune>0?'+':'') + detune.toFixed(1) + ' cents';
+  } else {
+    tunerNote.textContent = '--';
+    tunerFreq.textContent = '-- Hz';
+    tunerDetune.textContent = '-- cents';
+  }
+  tunerRaf = requestAnimationFrame(updateTuner);
+}
+
+/* Funciones auxiliares (autocorrelación + conversión nota) */
+function autoCorrelate(buf, sampleRate){
+  let SIZE = buf.length;
+  let rms = 0;
+  for (let i=0;i<SIZE;i++){ rms += buf[i]*buf[i]; }
+  rms = Math.sqrt(rms/SIZE);
+  if (rms < 0.01) return -1; // silencio / ruido bajo
+  let r1 = 0, r2 = SIZE-1, thres = 0.2;
+  for (let i=0;i<SIZE/2;i++){ if (Math.abs(buf[i]) < thres) { r1 = i; break; } }
+  for (let i=1;i<SIZE/2;i++){ if (Math.abs(buf[SIZE-i]) < thres) { r2 = SIZE-i; break; } }
+  const trimmed = buf.slice(r1, r2);
+  SIZE = trimmed.length;
+  let c = new Array(SIZE).fill(0);
+  for (let i=0;i<SIZE;i++){
+    for (let j=0;j<SIZE-i;j++){
+      c[i] += trimmed[j]*trimmed[j+i];
+    }
+  }
+  let d = 0;
+  while (c[d] > c[d+1]) d++;
+  let maxpos = -1, maxval = -1;
+  for (let i=d;i<SIZE;i++){
+    if (c[i] > maxval){ maxval = c[i]; maxpos = i; }
+  }
+  if (maxpos <= 0) return -1;
+  const T0 = maxpos;
+  return sampleRate / T0;
+}
+
+const noteStrings = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+function freqToNote(freq){ return Math.round(12 * Math.log2(freq / 440)) + 69; } // MIDI
+function noteToFrequency(midi){ return 440 * Math.pow(2, (midi - 69) / 12); }
+  // finalized
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
 </script>
 </body>
