@@ -197,21 +197,25 @@ transform-origin: top left;}
       <div id="tunerDetune" style="font-size:14px;">-- cents</div>
     </div>
   </div>
- <!-- METRONOME (desplegable) -->
-<div style="flex:1">
-  <button id="toggleMetronomeBtn" aria-expanded="false">Metronome ▸</button>
-  <div id="metronomePanel" aria-hidden="true" style="display:none; padding:8px 6px; border-radius:8px;">
-    <div style="margin-bottom:10px; font-size:14px; color:var(--muted)">
-      ⏱ Controla el tempo y activa el metrónomo.
-    </div>
-    <label for="tempo" style="font-size:14px;">Velocidad (BPM):</label>
-    <input id="tempo" type="range" min="40" max="240" value="100" style="width:100%; margin:8px 0;">
-    <div id="tempoValue" style="margin-bottom:10px;">100 BPM</div>
-    <button id="startStopMetronome">Start</button>
-  </div>
-</div>
-<!-- /METRONOME -->
   <!-- /TUNER -->
+
+  <!-- METRONOME (desplegable) -->
+  <div style="flex:1; min-width:160px;">
+    <button id="toggleMetronomeBtn" aria-expanded="false">Metronome ▸</button>
+    <div id="metronomePanel" aria-hidden="true" style="display:none; padding:8px 6px; border-radius:8px;">
+      <div style="margin-bottom:10px; font-size:14px; color:var(--muted)">
+        ⏱ Controla el tempo y activa el metrónomo.
+      </div>
+      <label for="tempo" style="font-size:14px;">Velocidad (BPM):</label>
+      <input id="tempo" type="range" min="40" max="240" value="100" style="width:100%; margin:8px 0;">
+      <div id="tempoValue" style="margin-bottom:10px;">100 BPM</div>
+      <button id="startStopMetronome">Start</button>
+    </div>
+  </div>
+  <!-- /METRONOME -->
+
+</div>
+<!-- /TUNER + METRONOME -->
     <!-- /INTERVAL TRAINER -->
     <div class="keyboard-wrap" role="application" aria-label="Piano">
       <div id="keyboard" class="keyboard" tabindex="0" aria-label="Piano keyboard">
@@ -1064,6 +1068,16 @@ function autoCorrelate(buf, sampleRate){
 const noteStrings = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 function freqToNote(freq){ return Math.round(12 * Math.log2(freq / 440)) + 69; } // MIDI
 function noteToFrequency(midi){ return 440 * Math.pow(2, (midi - 69) / 12); }
+ // --- METRONOME (desplegable) ---
+const toggleMetronomeBtn = document.getElementById("toggleMetronomeBtn");
+const metronomePanel = document.getElementById("metronomePanel");
+
+toggleMetronomeBtn.addEventListener("click", () => {
+  const isOpen = metronomePanel.style.display === "block";
+  metronomePanel.style.display = isOpen ? "none" : "block";
+  toggleMetronomeBtn.setAttribute("aria-expanded", !isOpen);
+  toggleMetronomeBtn.textContent = isOpen ? "Metronome ▸" : "Metronome ▾";
+});
   // finalized
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
 </script>
