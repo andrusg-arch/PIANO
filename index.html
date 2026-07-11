@@ -283,6 +283,13 @@ const keyboardEl = document.getElementById('keyboard');
 const masterVol = document.getElementById('masterVol');
 const sustainBtn = document.getElementById('sustainBtn');
 const resetBtn = document.getElementById('resetBtn');
+const instrumentSelect = document.getElementById("instrumentSelect");
+
+let currentInstrument = "sample";
+
+instrumentSelect.addEventListener("change", () => {
+    currentInstrument = instrumentSelect.value;
+});
 const zoomRange = document.getElementById("zoomRange");
 
 zoomRange.addEventListener("input", () => {
