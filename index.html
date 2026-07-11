@@ -590,22 +590,52 @@ function noteOn(idx, velocity = 1) {
   const now = audioCtx.currentTime;
 
   // Siempre usar samples
-  const sampleKey = getSampleForNote(n.name);
-  const buffer = sampleMap[sampleKey];
-  if (buffer) {
-    const sampleFreq = notes.find(x => x.name === sampleKey).freq;
-    const src = audioCtx.createBufferSource();
-    src.buffer = buffer;
-    src.playbackRate.value = n.freq / sampleFreq;
+  if (currentInstrument === "sample") {
+
+    const sampleKey = getSampleForNote(n.name);
+    const buffer = sampleMap[sampleKey];
+
+    if (buffer) {
+        const sampleFreq = notes.find(x => x.name === sampleKey).freq;
+
+        const src = audioCtx.createBufferSource();
+        src.buffer = buffer;
+        src.playbackRate.value = n.freq / sampleFreq;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(velocity, now);
+
+        src.connect(gain).connect(masterGain);
+        src.start(now);
+
+        activeVoices.set(idx, {
+            src,
+            gain,
+            release: 0.2,
+            released: false
+        });
+    }
+
+} else {
+
+    const osc = audioCtx.createOscillator();
+    osc.type = currentInstrument;
+    osc.frequency.value = n.freq;
 
     const gain = audioCtx.createGain();
     gain.gain.setValueAtTime(velocity, now);
 
-    src.connect(gain).connect(masterGain);
-    src.start(now);
+    osc.connect(gain).connect(masterGain);
+    osc.start(now);
 
-    activeVoices.set(idx, { src, gain, release: 0.2, released: false });
-  }
+    activeVoices.set(idx, {
+        src: osc,
+        gain,
+        release: 0.2,
+        released: false
+    });
+
+}
 
   // Visual + pentagrama
   markKey(idx, true);
