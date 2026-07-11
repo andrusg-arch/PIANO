@@ -955,18 +955,7 @@ function bindPointers(){
     });
     k.addEventListener('pointercancel', ev=> { const idx = parseInt(k.dataset.index,10); noteOff(idx); });
   });
-  k.addEventListener('pointerleave', () => {
-    const idx = parseInt(k.dataset.index, 10);
-    noteOff(idx);
-});
 }
-  document.addEventListener("pointerup", () => {
-    activeVoices.forEach((v, idx) => {
-        if (typeof idx === "number") {
-            noteOff(idx);
-        }
-    });
-});
 setTimeout(()=>{ positionBlackKeys(); bindPointers(); }, 140);
 window.addEventListener('resize', ()=> setTimeout(()=>{ positionBlackKeys(); bindPointers(); }, 80));
 
