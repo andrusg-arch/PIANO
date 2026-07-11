@@ -1035,8 +1035,34 @@ function updateTuner(){
     tunerNote.textContent = noteName;
     tunerFreq.textContent = pitch.toFixed(2) + ' Hz';
     const noteFreq = noteToFrequency(midi);
-    const detune = 1200 * Math.log2(pitch / noteFreq); // en cents
-    tunerDetune.textContent = (detune>0?'+':'') + detune.toFixed(1) + ' cents';
+    const detune = 1200 * Math.log2(pitch / noteFreq);
+
+tunerDetune.textContent =
+    (detune > 0 ? "+" : "") + detune.toFixed(1) + " cents";
+
+// Cambiar color según afinación
+if (Math.abs(detune) <= 5) {
+
+    // Afinado
+    tunerNote.style.color = "#22c55e";
+    tunerFreq.style.color = "#22c55e";
+    tunerDetune.style.color = "#22c55e";
+
+} else if (Math.abs(detune) <= 20) {
+
+    // Casi afinado
+    tunerNote.style.color = "#facc15";
+    tunerFreq.style.color = "#facc15";
+    tunerDetune.style.color = "#facc15";
+
+} else {
+
+    // Desafinado
+    tunerNote.style.color = "#ef4444";
+    tunerFreq.style.color = "#ef4444";
+    tunerDetune.style.color = "#ef4444";
+
+}
   } else {
     tunerNote.textContent = '--';
     tunerFreq.textContent = '-- Hz';
