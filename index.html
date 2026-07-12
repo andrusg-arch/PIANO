@@ -1290,49 +1290,46 @@ document.querySelectorAll(".chord-type").forEach(btn=>{
   });
 });
 
+let chordPlaying = [];
+
 function playChord(){
 
-  stopChord();
+    stopChord();
 
-  const root = chordNotesOrder.indexOf(selectedChordNote);
+    const rootOctave = 4;
 
-  chordIntervals[selectedChordType].forEach(interval=>{
+    const rootIndex = notes.findIndex(n =>
+        n.name === selectedChordNote + rootOctave
+    );
 
-    let noteIndex = root + interval;
+    if(rootIndex === -1) return;
 
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
+    chordIntervals[selectedChordType].forEach(interval=>{
 
-    osc.type = "triangle";
+        const idx = rootIndex + interval;
 
-    const freq = 261.63 * Math.pow(2, noteIndex/12);
+        if(idx >= 0 && idx < notes.length){
 
-    osc.frequency.value = freq;
+            noteOn(idx, chordGain.gain.value);
 
-    gain.gain.value = 0.35;
+            chordPlaying.push(idx);
 
-    osc.connect(gain);
-    gain.connect(chordGain);
+        }
 
-    osc.start();
-
-    chordVoices.push({
-      osc,
-      gain
     });
 
-  });
 }
 
 function stopChord(){
 
-  chordVoices.forEach(v=>{
-    try{
-      v.osc.stop();
-    }catch(e){}
-  });
+    chordPlaying.forEach(idx => {
 
-  chordVoices=[];
+        noteOff(idx);
+
+    });
+
+    chordPlaying = [];
+
 }
 
 
