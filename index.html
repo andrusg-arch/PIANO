@@ -89,6 +89,22 @@ transform-origin: top left;}
                }
 /* --- Staff (pentagrama) --- */
 #staffCanvas { box-shadow: 0 6px 18px rgba(0,0,0,0.25); background: transparent; }
+.chord-note,
+.chord-type{
+  min-width:44px;
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid #aaa;
+  background:#e6e6e6;
+  color:#111;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.chord-note:hover,
+.chord-type:hover{
+  background:#00d4b4;
+}
 </style>
 </head>
 <body>
@@ -1247,6 +1263,24 @@ startStopBtn.addEventListener("click", () => {
   if (metroRunning) stopMetronome();
   else startMetronome();
 });
+
+ // Seleccionar nota
+document.querySelectorAll(".chord-note").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    selectedChordNote = btn.dataset.note;
+    playChord();
+  });
+});
+
+// Seleccionar tipo
+document.querySelectorAll(".chord-type").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    selectedChordType = btn.dataset.chord;
+    if(selectedChordNote){
+      playChord();
+    }
+  });
+}); 
   // finalized
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
   // ---------- GENERADOR DE ACORDES ----------
@@ -1277,23 +1311,7 @@ const chordNotesOrder = [
 "F#","G","G#","A","A#","B"
 ];
 
-// Seleccionar nota
-document.querySelectorAll(".chord-note").forEach(btn=>{
-  btn.addEventListener("click",()=>{
-    selectedChordNote = btn.dataset.note;
-    playChord();
-  });
-});
 
-// Seleccionar tipo
-document.querySelectorAll(".chord-type").forEach(btn=>{
-  btn.addEventListener("click",()=>{
-    selectedChordType = btn.dataset.chord;
-    if(selectedChordNote){
-      playChord();
-    }
-  });
-});
 
 function playChord(){
 
@@ -1310,7 +1328,7 @@ function playChord(){
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
 
-    osc.type = "triangle";
+    osc.type = "sine";
 
     const freq = 261.63 * Math.pow(2, noteIndex/12);
 
