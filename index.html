@@ -1253,6 +1253,7 @@ console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[
 let selectedChordNote = "C";
 let selectedChordType = "major";
 let chordVoices = [];
+let chordEnabled = true;
 let chordGain = audioCtx.createGain();
 
 chordGain.gain.value = 0.8;
@@ -1280,6 +1281,7 @@ const chordNotesOrder = [
 document.querySelectorAll(".chord-note").forEach(btn=>{
   btn.addEventListener("click",()=>{
     selectedChordNote = btn.dataset.note;
+    playChord();
   });
 });
 
@@ -1287,10 +1289,15 @@ document.querySelectorAll(".chord-note").forEach(btn=>{
 document.querySelectorAll(".chord-type").forEach(btn=>{
   btn.addEventListener("click",()=>{
     selectedChordType = btn.dataset.chord;
+    if(selectedChordNote){
+      playChord();
+    }
   });
 });
 
 function playChord(){
+
+  if(!chordEnabled) return;
 
   stopChord();
 
@@ -1349,6 +1356,19 @@ document.getElementById("chordVolume")
 .addEventListener("input",e=>{
   chordGain.gain.value = e.target.value/100;
 });
+  document.getElementById("toggleChord")
+.addEventListener("click",()=>{
+
+  chordEnabled = !chordEnabled;
+
+  document.getElementById("toggleChord").textContent =
+  chordEnabled ? "🎼 Acordes: ON" : "🎼 Acordes: OFF";
+
+  if(!chordEnabled){
+    stopChord();
+  }
+
+});
 </script>
   <section id="chordGenerator" class="panel">
     <hr>
@@ -1385,6 +1405,7 @@ document.getElementById("chordVolume")
 
 <button id="playChord">▶️ Reproducir</button>
 <button id="stopChord">⏹️ Detener</button>
+<button id="toggleChord">🎼 Acordes: ON</button>
 
 <br><br>
 
