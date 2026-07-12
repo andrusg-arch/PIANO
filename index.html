@@ -111,6 +111,16 @@ transform-origin: top left;}
   <label class="small">Zoom</label>
   <input id="zoomRange" type="range" min="0.5" max="2" step="0.1" value="1">
       </div>
+   <div class="control-group">
+  <label class="small">Sonido</label>
+  <select id="instrumentSelect">
+    <option value="sample">Piano</option>
+    <option value="sine">Seno</option>
+    <option value="triangle">Triángulo</option>
+    <option value="square">Cuadrada</option>
+    <option value="sawtooth">Sierra</option>
+  </select>
+</div> 
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center"><button id="sustainBtn">Sustain: off</button><button id="resetBtn" class="primary">Reset</button></div>
     </div>
 <!-- Pentagrama (pequeño, no molesta) -->
@@ -273,6 +283,13 @@ const keyboardEl = document.getElementById('keyboard');
 const masterVol = document.getElementById('masterVol');
 const sustainBtn = document.getElementById('sustainBtn');
 const resetBtn = document.getElementById('resetBtn');
+const instrumentSelect = document.getElementById("instrumentSelect");
+
+let currentInstrument = "sample";
+
+instrumentSelect.addEventListener("change", () => {
+    currentInstrument = instrumentSelect.value;
+});
 const zoomRange = document.getElementById("zoomRange");
 
 zoomRange.addEventListener("input", () => {
@@ -573,22 +590,52 @@ function noteOn(idx, velocity = 1) {
   const now = audioCtx.currentTime;
 
   // Siempre usar samples
-  const sampleKey = getSampleForNote(n.name);
-  const buffer = sampleMap[sampleKey];
-  if (buffer) {
-    const sampleFreq = notes.find(x => x.name === sampleKey).freq;
-    const src = audioCtx.createBufferSource();
-    src.buffer = buffer;
-    src.playbackRate.value = n.freq / sampleFreq;
+  if (currentInstrument === "sample") {
+
+    const sampleKey = getSampleForNote(n.name);
+    const buffer = sampleMap[sampleKey];
+
+    if (buffer) {
+        const sampleFreq = notes.find(x => x.name === sampleKey).freq;
+
+        const src = audioCtx.createBufferSource();
+        src.buffer = buffer;
+        src.playbackRate.value = n.freq / sampleFreq;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(velocity, now);
+
+        src.connect(gain).connect(masterGain);
+        src.start(now);
+
+        activeVoices.set(idx, {
+            src,
+            gain,
+            release: 0.2,
+            released: false
+        });
+    }
+
+} else {
+
+    const osc = audioCtx.createOscillator();
+    osc.type = currentInstrument;
+    osc.frequency.value = n.freq;
 
     const gain = audioCtx.createGain();
     gain.gain.setValueAtTime(velocity, now);
 
-    src.connect(gain).connect(masterGain);
-    src.start(now);
+    osc.connect(gain).connect(masterGain);
+    osc.start(now);
 
-    activeVoices.set(idx, { src, gain, release: 0.2, released: false });
-  }
+    activeVoices.set(idx, {
+        src: osc,
+        gain,
+        release: 0.2,
+        released: false
+    });
+
+}
 
   // Visual + pentagrama
   markKey(idx, true);
@@ -1035,8 +1082,34 @@ function updateTuner(){
     tunerNote.textContent = noteName;
     tunerFreq.textContent = pitch.toFixed(2) + ' Hz';
     const noteFreq = noteToFrequency(midi);
-    const detune = 1200 * Math.log2(pitch / noteFreq); // en cents
-    tunerDetune.textContent = (detune>0?'+':'') + detune.toFixed(1) + ' cents';
+    const detune = 1200 * Math.log2(pitch / noteFreq);
+
+tunerDetune.textContent =
+    (detune > 0 ? "+" : "") + detune.toFixed(1) + " cents";
+
+// Cambiar color según afinación
+if (Math.abs(detune) <= 5) {
+
+    // Afinado
+    tunerNote.style.color = "#22c55e";
+    tunerFreq.style.color = "#22c55e";
+    tunerDetune.style.color = "#22c55e";
+
+} else if (Math.abs(detune) <= 20) {
+
+    // Casi afinado
+    tunerNote.style.color = "#facc15";
+    tunerFreq.style.color = "#facc15";
+    tunerDetune.style.color = "#facc15";
+
+} else {
+
+    // Desafinado
+    tunerNote.style.color = "#ef4444";
+    tunerFreq.style.color = "#ef4444";
+    tunerDetune.style.color = "#ef4444";
+
+}
   } else {
     tunerNote.textContent = '--';
     tunerFreq.textContent = '-- Hz';
