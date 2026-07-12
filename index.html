@@ -606,7 +606,7 @@ function noteOn(idx, velocity = 1) {
   const now = audioCtx.currentTime;
 
   // Siempre usar samples
-  if (currentInstrument === "sample") {
+  if (false) {
 
     const sampleKey = getSampleForNote(n.name);
     const buffer = sampleMap[sampleKey];
