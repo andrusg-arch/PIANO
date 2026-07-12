@@ -1250,5 +1250,51 @@ startStopBtn.addEventListener("click", () => {
   // finalized
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
 </script>
+  <section id="chordGenerator" class="panel">
+    <hr>
+  <h2>🎼 Generador de Acordes</h2>
+  <p>Selecciona una nota y el tipo de acorde para escucharlo.</p>
+<h3>Tipo de acorde</h3>
+
+<div id="chordTypes">
+  <button>Mayor</button>
+  <button>Menor</button>
+  <button>7</button>
+  <button>Maj7</button>
+  <button>m7</button>
+  <button>dim</button>
+  <button>aug</button>
+  <button>Sus2</button>
+  <button>Sus4</button>
+</div>
+  <div class="chord-notes">
+    <button class="chord-note" data-note="C">C</button>
+    <button class="chord-note" data-note="C#">C#</button>
+    <button class="chord-note" data-note="D">D</button>
+    <button class="chord-note" data-note="D#">D#</button>
+    <button class="chord-note" data-note="E">E</button>
+    <button class="chord-note" data-note="F">F</button>
+    <button class="chord-note" data-note="F#">F#</button>
+    <button class="chord-note" data-note="G">G</button>
+    <button class="chord-note" data-note="G#">G#</button>
+    <button class="chord-note" data-note="A">A</button>
+    <button class="chord-note" data-note="A#">A#</button>
+    <button class="chord-note" data-note="B">B</button>
+  </div>
+    <h3>Controles</h3>
+
+<button id="playChord">▶️ Reproducir</button>
+<button id="stopChord">⏹️ Detener</button>
+
+<br><br>
+
+<label for="chordVolume">Volumen del acorde</label>
+<input
+  type="range"
+  id="chordVolume"
+  min="0"
+  max="100"
+  value="80">
+</section>
 </body>
     </html>
