@@ -1290,46 +1290,49 @@ document.querySelectorAll(".chord-type").forEach(btn=>{
   });
 });
 
-let chordPlaying = [];
-
 function playChord(){
 
-    stopChord();
+  stopChord();
 
-    const rootOctave = 4;
+  const root = chordNotesOrder.indexOf(selectedChordNote);
 
-    const rootIndex = notes.findIndex(n =>
-        n.name === selectedChordNote + rootOctave
-    );
+  chordIntervals[selectedChordType].forEach(interval=>{
 
-    if(rootIndex === -1) return;
+    let noteIndex = root + interval;
 
-    chordIntervals[selectedChordType].forEach(interval=>{
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
 
-        const idx = rootIndex + interval;
+    osc.type = "triangle";
 
-        if(idx >= 0 && idx < notes.length){
+    const freq = 261.63 * Math.pow(2, noteIndex/12);
 
-            noteOn(idx, chordGain.gain.value);
+    osc.frequency.value = freq;
 
-            chordPlaying.push(idx);
+    gain.gain.value = 0.35;
 
-        }
+    osc.connect(gain);
+    gain.connect(chordGain);
 
+    osc.start();
+
+    chordVoices.push({
+      osc,
+      gain
     });
 
+  });
 }
 
 function stopChord(){
 
-    chordPlaying.forEach(idx => {
+  chordVoices.forEach(v=>{
+    try{
+      v.osc.stop();
+    }catch(e){}
+  });
 
-        noteOff(idx);
-
-    });
-
-    chordPlaying = [];
-
+  chordVoices=[];
 }
 
 
@@ -1346,8 +1349,8 @@ document.getElementById("chordVolume")
 .addEventListener("input",e=>{
   chordGain.gain.value = e.target.value/100;
 });
-
-<section id="chordGenerator" class="panel">
+</script>
+  <section id="chordGenerator" class="panel">
     <hr>
   <h2>🎼 Generador de Acordes</h2>
   <p>Selecciona una nota y el tipo de acorde para escucharlo.</p>
@@ -1393,8 +1396,5 @@ document.getElementById("chordVolume")
   max="100"
   value="80">
 </section>
-  
-</script>
-  
 </body>
     </html>
