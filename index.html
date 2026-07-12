@@ -1004,7 +1004,9 @@ resetBtn.addEventListener('click', ()=> {
       const rel = (typeof v.release === 'number') ? v.release : 0.05;
       v.gain.gain.cancelScheduledValues(now);
       v.gain.gain.linearRampToValueAtTime(0.0001, now + rel);
-      v.src.stop(now + rel + 0.05);
+    const now = audioCtx.currentTime;
+v.gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+v.osc.stop(now + 0.35);
     } catch(e){}
   });
 
@@ -1330,11 +1332,15 @@ function playChord(){
 
     osc.type = "sine";
 
-    const freq = 261.63 * Math.pow(2, noteIndex/12);
+    const midi = 60 + noteIndex;
+const freq = 440 * Math.pow(2, (midi - 69) / 12);
 
-    osc.frequency.value = freq;
+osc.frequency.value = freq;
 
-    gain.gain.value = 0.35;
+    const now = audioCtx.currentTime;
+
+gain.gain.setValueAtTime(0.001, now);
+gain.gain.exponentialRampToValueAtTime(0.35, now + 0.03);
 
     osc.connect(gain);
     gain.connect(chordGain);
