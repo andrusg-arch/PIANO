@@ -382,6 +382,31 @@ transition:0.1s;
   <button id="playChordBtn" class="primary">
     ▶ Tocar acorde
   </button>
+<label style="display:flex;align-items:center;gap:6px;color:var(--muted);">
+
+<input type="checkbox" id="arpMode">
+
+🎵 Arpegio
+
+</label>
+
+<div id="arpOptions" style="display:none;">
+
+<label style="font-size:13px;">
+
+Velocidad
+
+<input
+type="range"
+id="arpSpeed"
+min="50"
+max="400"
+value="150"
+step="10">
+
+</label>
+
+</div>
   <div id="chordDisplay" style="width:100%;text-align:center;margin-top:8px;font-weight:bold;color:var(--accent);">
   --
 </div>
@@ -1581,6 +1606,15 @@ function focusKeyboardOnChord(chordIndexes){
 }
 
 const playChordBtn = document.getElementById("playChordBtn");
+const arpMode = document.getElementById("arpMode");
+const arpOptions = document.getElementById("arpOptions");
+const arpSpeed = document.getElementById("arpSpeed");
+arpMode.addEventListener("change", () => {
+
+arpOptions.style.display =
+arpMode.checked ? "block" : "none";
+
+});
 
 let activeChord = [];
 const chordDisplay = document.getElementById("chordDisplay");
@@ -1622,25 +1656,45 @@ activeChord = chord;
 focusKeyboardOnChord(chord);
 
   // tocar todas las notas
-  chord.forEach((idx, i)=>{
+  if(arpMode.checked){
 
-    setTimeout(()=>{
-      noteOn(idx, 0.9);
-    }, i * 40);
+    chord.forEach((idx,i)=>{
 
-  });
+        setTimeout(()=>{
 
-  // mantener sonando y luego soltar
-  setTimeout(()=>{
+            noteOn(idx,0.9);
 
-    chord.forEach(idx=>{
-      noteOff(idx);
+        },i*parseInt(arpSpeed.value));
+
     });
 
-    activeChord = [];
+}else{
 
-  }, 1800);
+    chord.forEach(idx=>{
 
+        noteOn(idx,0.9);
+
+    });
+
+}
+
+  // mantener sonando y luego soltar
+const totalTime =
+arpMode.checked
+? chord.length*parseInt(arpSpeed.value)+1200
+:1800;
+
+setTimeout(()=>{
+
+    chord.forEach(idx=>{
+
+        noteOff(idx);
+
+    });
+
+    activeChord=[];
+
+},totalTime);
 });
   /* ================= ARMONIZADOR SENO ================= */
 
