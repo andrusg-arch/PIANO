@@ -388,7 +388,16 @@ font-weight:bold;
 <button id="stopHarmony" class="primary">
 ⛔ Apagar armonía
 </button>
+<label style="color:var(--muted)">
+Volumen armonizador
+</label>
 
+<input id="harmonyVolume"
+type="range"
+min="0"
+max="1"
+step="0.01"
+value="0.25">
 
 <div id="harmonyDisplay">
 C Mayor
@@ -1539,7 +1548,20 @@ let harmonyType = "maj";
 
 let harmonyVoices = [];
 
+document.getElementById("harmonyVolume")
+.addEventListener("input",e=>{
 
+harmonyVolume =
+parseFloat(e.target.value);
+
+harmonyVoices.forEach(v=>{
+
+v.gain.gain.value =
+harmonyVolume;
+
+});
+
+});
 
 const harmonyFreq = {
 
@@ -1715,7 +1737,17 @@ playHarmony();
 document.getElementById("stopHarmony")
 .addEventListener("click",()=>{
 
+
 stopHarmonySound();
+
+
+harmonyRoots=[];
+harmonyTypes=[];
+
+
+document.querySelectorAll(".harmony-section button")
+.forEach(b=>b.classList.remove("active"));
+
 
 });
   // finalized
