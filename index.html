@@ -273,6 +273,38 @@ font-weight:bold;
       <div id="tunerNote" style="font-size:28px; font-weight:bold; color:var(--accent); margin-bottom:4px;">--</div>
       <div id="tunerFreq" style="font-size:16px; margin-bottom:6px;">-- Hz</div>
       <div id="tunerDetune" style="font-size:14px;">-- cents</div>
+      <div id="tunerNeedleContainer" style="
+width:100%;
+height:20px;
+background:#222;
+border-radius:10px;
+margin-top:15px;
+position:relative;
+overflow:hidden;
+">
+
+<div style="
+position:absolute;
+left:50%;
+top:0;
+height:100%;
+width:3px;
+background:white;
+"></div>
+
+<div id="tunerNeedle" style="
+position:absolute;
+top:0;
+left:50%;
+width:6px;
+height:100%;
+background:#22c55e;
+border-radius:5px;
+transform:translateX(-50%);
+transition:0.1s;
+"></div>
+
+</div>
     </div>
   </div>
   <!-- /TUNER -->
@@ -1199,6 +1231,7 @@ const tunerPanel = document.getElementById('tunerPanel');
 const tunerNote = document.getElementById('tunerNote');
 const tunerFreq = document.getElementById('tunerFreq');
 const tunerDetune = document.getElementById('tunerDetune');
+const tunerNeedle = document.getElementById('tunerNeedle');
 
 let tunerStream = null;
 let tunerSource = null;
@@ -1241,7 +1274,7 @@ async function startTuner(){
     tunerStream = stream;
     tunerSource = audioCtx.createMediaStreamSource(stream);
     tunerAnalyser = audioCtx.createAnalyser();
-    tunerAnalyser.fftSize = 2048; // buena precisión / latencia
+    tunerAnalyser.fftSize = 4096; // buena precisión / latencia
     tunerSource.connect(tunerAnalyser);
     tunerBuffer = new Float32Array(tunerAnalyser.fftSize);
 
@@ -1271,7 +1304,8 @@ function updateTuner(){
   const pitch = autoCorrelate(tunerBuffer, audioCtx.sampleRate);
   if (pitch && pitch !== -1) {
     const midi = freqToNote(pitch); // devuelve número MIDI (p. ej. 69 = A4)
-    const noteName = noteStrings[midi % 12];
+    const octave = Math.floor(midi / 12)-1;
+const noteName = noteStrings[midi % 12] + octave;
     tunerNote.textContent = noteName;
     tunerFreq.textContent = pitch.toFixed(2) + ' Hz';
     const noteFreq = noteToFrequency(midi);
@@ -1279,7 +1313,23 @@ function updateTuner(){
 
 tunerDetune.textContent =
     (detune > 0 ? "+" : "") + detune.toFixed(1) + " cents";
+// Movimiento de aguja del afinador
+let position = 50 + detune;
 
+if(position < 5) position = 5;
+if(position > 95) position = 95;
+
+tunerNeedle.style.left = position + "%";
+
+if(Math.abs(detune)<=5){
+    tunerNeedle.style.background="#22c55e";
+}
+else if(Math.abs(detune)<=20){
+    tunerNeedle.style.background="#facc15";
+}
+else{
+    tunerNeedle.style.background="#ef4444";
+}
 // Cambiar color según afinación
 if (Math.abs(detune) <= 5) {
 
@@ -1317,7 +1367,7 @@ function autoCorrelate(buf, sampleRate){
   let rms = 0;
   for (let i=0;i<SIZE;i++){ rms += buf[i]*buf[i]; }
   rms = Math.sqrt(rms/SIZE);
-  if (rms < 0.01) return -1; // silencio / ruido bajo
+  if (rms < 0.005) return -1; // silencio / ruido bajo
   let r1 = 0, r2 = SIZE-1, thres = 0.2;
   for (let i=0;i<SIZE/2;i++){ if (Math.abs(buf[i]) < thres) { r1 = i; break; } }
   for (let i=1;i<SIZE/2;i++){ if (Math.abs(buf[SIZE-i]) < thres) { r2 = SIZE-i; break; } }
