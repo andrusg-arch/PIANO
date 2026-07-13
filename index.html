@@ -355,7 +355,14 @@ font-weight:bold;
 
 <div class="harmony-section">
 
-<strong>🎤 Armonizador (Seno)</strong>
+<strong>🎤 Armonizador</strong>
+
+<select id="harmonySound">
+  <option value="sine">Seno</option>
+  <option value="triangle">Triángulo</option>
+  <option value="square">Cuadrada</option>
+  <option value="sawtooth">Sierra</option>
+</select>
 
 <div class="harmony-notes">
 <button data-note="C">C</button>
@@ -1547,6 +1554,7 @@ let harmonyRoot = "C";
 let harmonyType = "maj";
 
 let harmonyVoices = [];
+let harmonyOscillator = "sine";
 
 document.getElementById("harmonyVolume")
 .addEventListener("input",e=>{
@@ -1561,6 +1569,12 @@ harmonyVolume;
 
 });
 
+});
+
+document.getElementById("harmonySound")
+.addEventListener("change", e=>{
+  harmonyOscillator = e.target.value;
+  playHarmony();
 });
 
 const harmonyFreq = {
@@ -1647,8 +1661,7 @@ audioCtx.createOscillator();
 let gain =
 audioCtx.createGain();
 
-
-osc.type="sine";
+osc.type = harmonyOscillator;
 
 osc.frequency.value=freq;
 
