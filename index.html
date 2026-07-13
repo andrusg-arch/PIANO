@@ -1865,14 +1865,15 @@ document.querySelectorAll("[data-note]")
 btn.addEventListener("click",()=>{
 
 
-document.querySelectorAll("[data-harmony-note]")
+document.querySelectorAll("[data-note]")
 .forEach(b=>b.classList.remove("active"));
 
 
 btn.classList.add("active");
 
 
-harmonyRoot = btn.dataset.harmonyNote;
+harmonyRoot=btn.dataset.note;
+
 
 playHarmony();
 
@@ -1884,7 +1885,7 @@ playHarmony();
 
 
 
-document.querySelectorAll("[data-harmony-note]")
+document.querySelectorAll("[data-type]")
 .forEach(btn=>{
 
 
