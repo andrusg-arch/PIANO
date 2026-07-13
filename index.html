@@ -388,7 +388,16 @@ font-weight:bold;
 <button id="stopHarmony" class="primary">
 ⛔ Apagar armonía
 </button>
+<label style="color:var(--muted)">
+Volumen armonizador
+</label>
 
+<input id="harmonyVolume"
+type="range"
+min="0"
+max="1"
+step="0.01"
+value="0.25">
 
 <div id="harmonyDisplay">
 C Mayor
@@ -1534,12 +1543,27 @@ sus4:[0,5,7]
 };
 
 
-let harmonyRoot = "C";
-let harmonyType = "maj";
+let harmonyRoots = [];
+let harmonyTypes = [];
 
 let harmonyVoices = [];
 
+let harmonyVolume = 0.25;
 
+document.getElementById("harmonyVolume")
+.addEventListener("input",e=>{
+
+harmonyVolume =
+parseFloat(e.target.value);
+
+harmonyVoices.forEach(v=>{
+
+v.gain.gain.value =
+harmonyVolume;
+
+});
+
+});
 
 const harmonyFreq = {
 
@@ -1584,77 +1608,85 @@ harmonyVoices=[];
 
 
 
-function playHarmony(){
-
-stopHarmonySound();
-
-
-let rootIndex =
-chromaticNotes.indexOf(harmonyRoot);
+document.querySelectorAll("[data-note]")
+.forEach(btn=>{
 
 
-let intervals =
-harmonyIntervals[harmonyType];
+btn.addEventListener("pointerdown",()=>{
 
 
-intervals.forEach(interval=>{
+let note=btn.dataset.note;
 
 
-let noteIndex =
-(rootIndex+interval)%12;
+if(harmonyRoots.includes(note)){
+
+harmonyRoots =
+harmonyRoots.filter(n=>n!==note);
+
+btn.classList.remove("active");
 
 
-let name =
-chromaticNotes[noteIndex];
+}else{
 
 
-let octaveShift =
-Math.floor((rootIndex+interval)/12);
+harmonyRoots.push(note);
 
-
-let freq =
-harmonyFreq[name] *
-Math.pow(2,octaveShift);
-
-
-
-let osc =
-audioCtx.createOscillator();
-
-
-let gain =
-audioCtx.createGain();
-
-
-osc.type="sine";
-
-osc.frequency.value=freq;
-
-
-gain.gain.value=0.25;
-
-
-osc.connect(gain)
-.connect(masterGain);
-
-
-osc.start();
-
-
-harmonyVoices.push({
-osc,
-gain
-});
-
-
-});
-
-
-document.getElementById("harmonyDisplay").textContent =
-harmonyRoot+" "+harmonyType;
+btn.classList.add("active");
 
 
 }
+
+
+playHarmony();
+
+
+});
+
+
+});
+
+
+
+
+
+document.querySelectorAll("[data-type]")
+.forEach(btn=>{
+
+
+btn.addEventListener("pointerdown",()=>{
+
+
+let type=btn.dataset.type;
+
+
+if(harmonyTypes.includes(type)){
+
+
+harmonyTypes =
+harmonyTypes.filter(t=>t!==type);
+
+
+btn.classList.remove("active");
+
+
+}else{
+
+
+harmonyTypes.push(type);
+
+btn.classList.add("active");
+
+
+}
+
+
+playHarmony();
+
+
+});
+
+
+});
 
 
 
@@ -1715,7 +1747,17 @@ playHarmony();
 document.getElementById("stopHarmony")
 .addEventListener("click",()=>{
 
+
 stopHarmonySound();
+
+
+harmonyRoots=[];
+harmonyTypes=[];
+
+
+document.querySelectorAll(".harmony-section button")
+.forEach(b=>b.classList.remove("active"));
+
 
 });
   // finalized
