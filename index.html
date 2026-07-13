@@ -89,6 +89,32 @@ transform-origin: top left;}
                }
 /* --- Staff (pentagrama) --- */
 #staffCanvas { box-shadow: 0 6px 18px rgba(0,0,0,0.25); background: transparent; }
+/* ===== Biblioteca de acordes ===== */
+
+.chord-library{
+  margin-top:16px;
+  padding:12px;
+  border-radius:10px;
+  background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.02));
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  align-items:center;
+}
+
+.chord-library strong{
+  color:var(--accent);
+}
+
+.chord-library select{
+  min-width:120px;
+}
+
+#playChordBtn{
+  font-weight:bold;
+}
+
 </style>
 </head>
 <body>
@@ -242,7 +268,48 @@ transform-origin: top left;}
         <div id="blackContainer" class="black-container" aria-hidden="false"></div>
       </div>
       <div class="legend"><div>Rango: <strong>C1 → B5</strong> (5 octavas)</div><div class="small">Barra espacio = sustain • Teclado Q..P / A..L / Z..M</div></div>
+    
+    <div class="chord-library" style="margin-top:16px;padding:12px;border-radius:10px;background:rgba(255,255,255,.04);display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;">
+
+  <strong style="color:var(--accent);">🎼 Biblioteca de acordes</strong>
+
+  <select id="chordRoot">
+    <option>C</option>
+    <option>C#</option>
+    <option>D</option>
+    <option>D#</option>
+    <option>E</option>
+    <option>F</option>
+    <option>F#</option>
+    <option>G</option>
+    <option>G#</option>
+    <option>A</option>
+    <option>A#</option>
+    <option>B</option>
+  </select>
+
+  <select id="chordType">
+    <option value="maj">Mayor</option>
+    <option value="min">Menor</option>
+    <option value="dim">Disminuido</option>
+    <option value="aug">Aumentado</option>
+    <option value="sus2">Sus2</option>
+    <option value="sus4">Sus4</option>
+    <option value="7">7</option>
+    <option value="maj7">Maj7</option>
+    <option value="min7">m7</option>
+  </select>
+
+  <button id="playChordBtn" class="primary">
+    ▶ Tocar acorde
+  </button>
+  <div id="chordDisplay" style="width:100%;text-align:center;margin-top:8px;font-weight:bold;color:var(--accent);">
+  --
+</div>
+
+</div>
     </div>
+    
 
     <div class="footer">página con fines educativos ;) <code>piano_andres_black_fixed.html</code>. Formato codigo html.</div>
   </div>
@@ -1246,6 +1313,125 @@ function stopMetronome() {
 startStopBtn.addEventListener("click", () => {
   if (metroRunning) stopMetronome();
   else startMetronome();
+});
+/* -------------------- BIBLIOTECA DE ACORDES -------------------- */
+
+const chordLibrary = {
+  maj:  [0,4,7],
+  min:  [0,3,7],
+  dim:  [0,3,6],
+  aug:  [0,4,8],
+  sus2: [0,2,7],
+  sus4: [0,5,7],
+  7:    [0,4,7,10],
+  maj7: [0,4,7,11],
+  min7: [0,3,7,10]
+};
+
+// notas cromáticas
+const chromaticNotes = [
+  "C","C#","D","D#","E","F",
+  "F#","G","G#","A","A#","B"
+];
+
+// buscar índice de una nota dentro del piano
+function findNoteIndex(noteName, octave){
+  const fullName = noteName + octave;
+  return notes.findIndex(n => n.name === fullName);
+}
+
+// construir acorde
+function buildChord(root, type, octave = 4){
+
+  const rootIndex = chromaticNotes.indexOf(root);
+
+  if(rootIndex === -1) return [];
+
+  const intervals = chordLibrary[type];
+
+  if(!intervals) return [];
+
+  const chordIndexes = [];
+
+  intervals.forEach(interval=>{
+    const noteNumber = rootIndex + interval;
+    const octaveShift = Math.floor(noteNumber / 12);
+
+    const noteName = chromaticNotes[noteNumber % 12];
+
+    const idx = findNoteIndex(
+      noteName,
+      octave + octaveShift
+    );
+
+    if(idx !== -1){
+      chordIndexes.push(idx);
+    }
+  });
+
+  return chordIndexes;
+}
+/* -------- Reproductor de acordes -------- */
+
+const chordRoot = document.getElementById("chordRoot");
+const chordType = document.getElementById("chordType");
+const playChordBtn = document.getElementById("playChordBtn");
+
+let activeChord = [];
+const chordDisplay = document.getElementById("chordDisplay");
+
+playChordBtn.addEventListener("click", ()=>{
+
+  // apagar acorde anterior si existe
+  activeChord.forEach(idx=>{
+    noteOff(idx);
+  });
+
+  activeChord = [];
+
+  const root = chordRoot.value;
+  const type = chordType.value;
+  
+  const typeNames = {
+  maj:"Mayor",
+  min:"Menor",
+  dim:"Disminuido",
+  aug:"Aumentado",
+  sus2:"Sus2",
+  sus4:"Sus4",
+  7:"Séptima",
+  maj7:"Maj7",
+  min7:"m7"
+};
+
+chordDisplay.textContent =
+root + " " + typeNames[type];
+
+  // construir acorde en octava 4
+  const chord = buildChord(root, type, 4);
+
+  activeChord = chord;
+
+  // tocar todas las notas
+  chord.forEach((idx, i)=>{
+
+    setTimeout(()=>{
+      noteOn(idx, 0.9);
+    }, i * 40);
+
+  });
+
+  // mantener sonando y luego soltar
+  setTimeout(()=>{
+
+    chord.forEach(idx=>{
+      noteOff(idx);
+    });
+
+    activeChord = [];
+
+  }, 1800);
+
 });
   // finalized
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
