@@ -1249,6 +1249,34 @@ startStopBtn.addEventListener("click", () => {
 });
   // finalized
 console.log('Piano (black fixed) listo — rango:', notes[0].name, '→', notes[notes.length-1].name);
+
+
+/* ===========================
+   GENERADOR DE ACORDES
+=========================== */
+
+const chordGain = audioCtx.createGain();
+chordGain.connect(masterGain);
+
+let chordOscillators = [];
+let selectedRoot = "C";
+let selectedChord = "Mayor";
+  
+function stopChord(){
+
+  const now = audioCtx.currentTime;
+
+  chordOscillators.forEach(osc => {
+    try {
+      osc.gain.gain.cancelScheduledValues(now);
+      osc.gain.gain.linearRampToValueAtTime(0.0001, now + 0.3);
+      osc.osc.stop(now + 0.35);
+    } catch(e){}
+  });
+
+  chordOscillators = [];
+}
+  
 </script>
   <section id="chordGenerator" class="panel">
     <hr>
