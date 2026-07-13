@@ -110,6 +110,48 @@ transform-origin: top left;}
 .chord-library select{
   min-width:120px;
 }
+  /* ===== ARMONIZADOR ===== */
+
+.harmony-section{
+margin-top:16px;
+padding:12px;
+border-radius:10px;
+background:rgba(255,255,255,.04);
+display:flex;
+flex-direction:column;
+gap:10px;
+align-items:center;
+}
+
+.harmony-section strong{
+color:var(--accent);
+}
+
+.harmony-notes,
+.harmony-types{
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+justify-content:center;
+}
+
+
+.harmony-section button{
+background:#e6e6e6;
+color:#111;
+font-weight:bold;
+}
+
+
+.harmony-section button.active{
+background:var(--accent);
+}
+
+
+#harmonyDisplay{
+color:var(--accent);
+font-weight:bold;
+}
 
 #playChordBtn{
   font-weight:bold;
@@ -309,7 +351,51 @@ transform-origin: top left;}
 
 </div>
     </div>
-    
+<!-- ===== ARMONIZADOR SENO ===== -->
+
+<div class="harmony-section">
+
+<strong>🎤 Armonizador (Seno)</strong>
+
+<div class="harmony-notes">
+<button data-note="C">C</button>
+<button data-note="C#">C♯</button>
+<button data-note="D">D</button>
+<button data-note="D#">D♯</button>
+<button data-note="E">E</button>
+<button data-note="F">F</button>
+<button data-note="F#">F♯</button>
+<button data-note="G">G</button>
+<button data-note="G#">G♯</button>
+<button data-note="A">A</button>
+<button data-note="A#">A♯</button>
+<button data-note="B">B</button>
+</div>
+
+
+<div class="harmony-types">
+
+<button data-type="maj">Mayor</button>
+<button data-type="min">Menor</button>
+<button data-type="7">7</button>
+<button data-type="maj7">Maj7</button>
+<button data-type="min7">m7</button>
+<button data-type="sus4">Sus4</button>
+
+</div>
+
+
+<button id="stopHarmony" class="primary">
+⛔ Apagar armonía
+</button>
+
+
+<div id="harmonyDisplay">
+C Mayor
+</div>
+
+
+</div>    
 
     <div class="footer">página con fines educativos ;) <code>piano_andres_black_fixed.html</code>. Formato codigo html.</div>
   </div>
@@ -1431,6 +1517,205 @@ root + " " + typeNames[type];
     activeChord = [];
 
   }, 1800);
+
+});
+  /* ================= ARMONIZADOR SENO ================= */
+
+
+const harmonyIntervals = {
+
+maj:[0,4,7],
+min:[0,3,7],
+7:[0,4,7,10],
+maj7:[0,4,7,11],
+min7:[0,3,7,10],
+sus4:[0,5,7]
+
+};
+
+
+let harmonyRoot = "C";
+let harmonyType = "maj";
+
+let harmonyVoices = [];
+
+
+
+const harmonyFreq = {
+
+"C":261.63,
+"C#":277.18,
+"D":293.66,
+"D#":311.13,
+"E":329.63,
+"F":349.23,
+"F#":369.99,
+"G":392,
+"G#":415.30,
+"A":440,
+"A#":466.16,
+"B":493.88
+
+};
+
+
+
+function stopHarmonySound(){
+
+harmonyVoices.forEach(v=>{
+
+try{
+
+v.gain.gain.exponentialRampToValueAtTime(
+0.001,
+audioCtx.currentTime+0.2
+);
+
+v.osc.stop(audioCtx.currentTime+0.25);
+
+}catch(e){}
+
+});
+
+
+harmonyVoices=[];
+
+}
+
+
+
+function playHarmony(){
+
+stopHarmonySound();
+
+
+let rootIndex =
+chromaticNotes.indexOf(harmonyRoot);
+
+
+let intervals =
+harmonyIntervals[harmonyType];
+
+
+intervals.forEach(interval=>{
+
+
+let noteIndex =
+(rootIndex+interval)%12;
+
+
+let name =
+chromaticNotes[noteIndex];
+
+
+let octaveShift =
+Math.floor((rootIndex+interval)/12);
+
+
+let freq =
+harmonyFreq[name] *
+Math.pow(2,octaveShift);
+
+
+
+let osc =
+audioCtx.createOscillator();
+
+
+let gain =
+audioCtx.createGain();
+
+
+osc.type="sine";
+
+osc.frequency.value=freq;
+
+
+gain.gain.value=0.25;
+
+
+osc.connect(gain)
+.connect(masterGain);
+
+
+osc.start();
+
+
+harmonyVoices.push({
+osc,
+gain
+});
+
+
+});
+
+
+document.getElementById("harmonyDisplay").textContent =
+harmonyRoot+" "+harmonyType;
+
+
+}
+
+
+
+document.querySelectorAll("[data-note]")
+.forEach(btn=>{
+
+
+btn.addEventListener("click",()=>{
+
+
+document.querySelectorAll("[data-note]")
+.forEach(b=>b.classList.remove("active"));
+
+
+btn.classList.add("active");
+
+
+harmonyRoot=btn.dataset.note;
+
+
+playHarmony();
+
+
+});
+
+
+});
+
+
+
+document.querySelectorAll("[data-type]")
+.forEach(btn=>{
+
+
+btn.addEventListener("click",()=>{
+
+
+document.querySelectorAll("[data-type]")
+.forEach(b=>b.classList.remove("active"));
+
+
+btn.classList.add("active");
+
+
+harmonyType=btn.dataset.type;
+
+
+playHarmony();
+
+
+});
+
+
+});
+
+
+
+document.getElementById("stopHarmony")
+.addEventListener("click",()=>{
+
+stopHarmonySound();
 
 });
   // finalized
