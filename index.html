@@ -1556,6 +1556,7 @@ function buildChord(root, type, octave = 4){
 
 const chordRoot = document.getElementById("chordRoot");
 const chordType = document.getElementById("chordType");
+
 function focusKeyboardOnChord(chordIndexes){
 
   if(chordIndexes.length === 0) return;
@@ -1566,20 +1567,19 @@ function focusKeyboardOnChord(chordIndexes){
 
   if(!firstKey) return;
 
+  const keyCenter = firstKey.offsetLeft + (firstKey.offsetWidth / 2);
 
-  const keyboardRect = keyboardEl.getBoundingClientRect();
-  const keyRect = firstKey.getBoundingClientRect();
+  const centerScreen = keyboardEl.clientWidth / 2;
 
+  const targetScroll = keyCenter - centerScreen;
 
-  const scrollPosition =
-  keyRect.left - keyboardRect.left 
-  - (keyboardRect.width * 0.75)
-  + (keyRect.width / 2);
-
-
-  keyboardEl.scrollLeft += scrollPosition;
+  keyboardEl.scrollTo({
+    left: targetScroll,
+    behavior: "smooth"
+  });
 
 }
+
 const playChordBtn = document.getElementById("playChordBtn");
 
 let activeChord = [];
