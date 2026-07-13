@@ -1276,6 +1276,78 @@ function stopChord(){
 
   chordOscillators = [];
 }
+
+function getChordIntervals(type){
+
+  const chords = {
+    "Mayor":[0,4,7],
+    "Menor":[0,3,7],
+    "7":[0,4,7,10],
+    "Maj7":[0,4,7,11],
+    "m7":[0,3,7,10],
+    "dim":[0,3,6],
+    "aug":[0,4,8],
+    "Sus2":[0,2,7],
+    "Sus4":[0,5,7]
+  };
+
+  return chords[type] || chords["Mayor"];
+}  
+
+function playChord(){
+
+  stopChord();
+
+  const rootIndex = notes.findIndex(n => n.name === selectedRoot + "4");
+
+  if(rootIndex === -1) return;
+
+  const rootFreq = notes[rootIndex].freq;
+  const intervals = getChordIntervals(selectedChord);
+
+  const now = audioCtx.currentTime;
+
+  intervals.forEach((semi, i)=>{
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = "sine";
+
+    osc.frequency.value =
+      rootFreq * Math.pow(2, semi / 12);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(
+      0.35,
+      now + 0.05
+    );
+
+    osc.connect(gain);
+    gain.connect(chordGain);
+
+    osc.start(now);
+
+    chordOscillators.push({
+      osc,
+      gain
+    });
+
+  });
+
+}
+
+  document.querySelectorAll(".chord-note").forEach(btn => {
+
+  btn.addEventListener("click", ()=>{
+
+    selectedRoot = btn.dataset.note;
+
+    playChord();
+
+  });
+
+});
   
 </script>
   <section id="chordGenerator" class="panel">
