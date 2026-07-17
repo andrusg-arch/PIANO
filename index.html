@@ -428,18 +428,18 @@ step="10">
 </select>
 
 <div class="harmony-notes">
-<button data-note="C">C</button>
-<button data-note="C#">C♯</button>
-<button data-note="D">D</button>
-<button data-note="D#">D♯</button>
-<button data-note="E">E</button>
-<button data-note="F">F</button>
-<button data-note="F#">F♯</button>
-<button data-note="G">G</button>
-<button data-note="G#">G♯</button>
-<button data-note="A">A</button>
-<button data-note="A#">A♯</button>
-<button data-note="B">B</button>
+<button data-harmony-note="C">C</button>
+<button data-harmony-note="C#">C♯</button>
+<button data-harmony-note="D">D</button>
+<button data-harmony-note="D#">D♯</button>
+<button data-harmony-note="E">E</button>
+<button data-harmony-note="F">F</button>
+<button data-harmony-note="F#">F♯</button>
+<button data-harmony-note="G">G</button>
+<button data-harmony-note="G#">G♯</button>
+<button data-harmony-note="A">A</button>
+<button data-harmony-note="A#">A♯</button>
+<button data-harmony-note="B">B</button>
 </div>
 
 
@@ -1858,22 +1858,20 @@ harmonyRoot+" "+harmonyType;
 
 
 
-document.querySelectorAll("[data-note]")
+document.querySelectorAll("[data-harmony-note]")
 .forEach(btn=>{
 
 
 btn.addEventListener("click",()=>{
 
 
-document.querySelectorAll("[data-note]")
+document.querySelectorAll("[data-harmony-note]")
 .forEach(b=>b.classList.remove("active"));
-
 
 btn.classList.add("active");
 
 
-harmonyRoot=btn.dataset.note;
-
+harmonyRoot = btn.dataset.harmonyNote;
 
 playHarmony();
 
